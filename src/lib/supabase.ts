@@ -1,0 +1,19 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+export const supabaseAdmin = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  serviceRoleKey || 'placeholder-service-role-key',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  },
+);
+
+export function getSupabaseError(error: { message?: string } | null): string {
+  return error?.message || 'Supabase request failed';
+}

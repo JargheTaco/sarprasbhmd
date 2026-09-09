@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface Params {
   params: Promise<{ ticket: string }>;
@@ -24,9 +24,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       asset_id: string;
     }
 
-    const loan = db.prepare(`
-      SELECT id, status, asset_id FROM loan_requests WHERE ticket_code = ? OR id = ?
-    `).get(ticket, ticket) as LoanRow | undefined;
+    const { data: loans, error: findError } = await supabaseAdmin
+      .from('loan_requests')
+      .select('id, status, asset_id')
+      .or(`ticket_code.eq.${ticket},id.eq.${ticket}`)
+      .limit(1);
+    if (findError) throw findError;
+    const loan = loans?.[0] as LoanRow | undefined;
 
     if (!loan) {
       return NextResponse.json({ error: 'Peminjaman tidak ditemukan' }, { status: 404 });
@@ -42,20 +46,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     const now = new Date().toISOString();
 
     // Update loan status to IN_USE
-    db.prepare(`
-      UPDATE loan_requests
-      SET status = 'IN_USE', picked_up_at = ?
-      WHERE id = ?
-    `).run(now, loan.id);
+    const { error: loanError } = await supabaseAdmin.from('loan_requests')
+      .update({ status: 'IN_USE', picked_up_at: now })
+      .eq('id', loan.id);
+    if (loanError) throw loanError;
 
     // Update asset status to DIPINJAM
-    db.prepare(`
-      UPDATE assets
-      SET status = 'DIPINJAM'
-      WHERE id = ?
-    `).run(loan.asset_id);
+    const { error: assetError } = await supabaseAdmin.from('assets')
+      .update({ status: 'DIPINJAM' })
+      .eq('id', loan.asset_id);
+    if (assetError) throw assetError;
 
-    const updated = db.prepare('SELECT * FROM loan_requests WHERE id = ?').get(loan.id);
+    const { data: updated, error: fetchError } = await supabaseAdmin.from('loan_requests').select('*').eq('id', loan.id).single();
+    if (fetchError) throw fetchError;
 
     return NextResponse.json({
       success: true,

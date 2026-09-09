@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Printer, X, ShieldCheck, CheckCircle2, QrCode } from 'lucide-react';
+import { CheckCircle2, Printer, QrCode, ShieldCheck, X } from 'lucide-react';
 
 interface LoanData {
   ticket_code: string;
@@ -95,10 +94,10 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
               Kementerian Pendidikan Tinggi, Riset, dan Teknologi
             </h4>
             <h1 className="font-extrabold text-lg sm:text-xl uppercase tracking-wider text-slate-900 font-sans mt-0.5">
-              UNIVERSITAS KAMPUS MERDEKA
+              UNIVERSITAS BHAMADA SLAWI
             </h1>
             <h2 className="font-bold text-sm uppercase tracking-wide text-blue-900 font-sans">
-              BIRO UMUM DAN PENGELOLAAN SARANA PRASARANA
+              SARANA PRASARANA
             </h2>
             <p className="text-[11px] text-slate-500 font-sans mt-1">
               Jl. Kampus Terpadu No. 1, Graha Rektorat Lt. 1 | Hotline: (021) 789-0123 | Email: sarpras@kampus.ac.id

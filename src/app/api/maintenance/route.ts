@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,43 +10,34 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type');
     const q = searchParams.get('q');
 
-    let sql = `
-      SELECT 
-        m.*,
-        a.name as asset_name,
-        a.code as asset_code,
-        a.location as asset_location,
-        a.condition as asset_condition
-      FROM maintenance_records m
-      JOIN assets a ON m.asset_id = a.id
-      WHERE 1=1
-    `;
-    const params: (string | number)[] = [];
+    let query = supabaseAdmin.from('maintenance_records').select('*, assets(name, code, location, condition)');
 
     if (category && category !== 'ALL') {
-      sql += ' AND m.category = ?';
-      params.push(category);
+      query = query.eq('category', category);
     }
 
     if (status && status !== 'ALL') {
-      sql += ' AND m.status = ?';
-      params.push(status);
+      query = query.eq('status', status);
     }
 
     if (type && type !== 'ALL') {
-      sql += ' AND m.type = ?';
-      params.push(type);
+      query = query.eq('type', type);
     }
 
     if (q) {
-      sql += ' AND (m.ticket_number LIKE ? OR m.title LIKE ? OR m.technician_name LIKE ? OR a.name LIKE ?)';
-      const term = `%${q}%`;
-      params.push(term, term, term, term);
+      query = query.or(`ticket_number.ilike.%${q}%,title.ilike.%${q}%,technician_name.ilike.%${q}%`);
     }
 
-    sql += ' ORDER BY m.scheduled_date DESC, m.created_at DESC';
-
-    const records = db.prepare(sql).all(...params);
+    const { data, error } = await query.order('scheduled_date', { ascending: false }).order('created_at', { ascending: false });
+    if (error) throw error;
+    const records = (data || []).map((record) => ({
+      ...record,
+      asset_name: record.assets?.name,
+      asset_code: record.assets?.code,
+      asset_location: record.assets?.location,
+      asset_condition: record.assets?.condition,
+      assets: undefined,
+    }));
     return NextResponse.json({ success: true, records });
   } catch (err: unknown) {
     console.error('Fetch maintenance error:', err);
@@ -78,54 +69,56 @@ export async function POST(req: NextRequest) {
       id: string;
       category: string;
     }
-    const asset = db.prepare('SELECT id, category FROM assets WHERE id = ?').get(asset_id) as AssetCheck | undefined;
+    const { data: asset, error: assetError } = await supabaseAdmin
+      .from('assets')
+      .select('id, category')
+      .eq('id', asset_id)
+      .maybeSingle<AssetCheck>();
+    if (assetError) throw assetError;
     if (!asset) {
       return NextResponse.json({ error: 'Aset tidak ditemukan' }, { status: 404 });
     }
 
     const currentYear = new Date().getFullYear();
-    const countMnt = db.prepare('SELECT COUNT(*) as count FROM maintenance_records').get() as { count: number };
-    const ticketCode = `MNT-${currentYear}-${(countMnt.count + 1).toString().padStart(4, '0')}`;
+    const { count, error: countError } = await supabaseAdmin
+      .from('maintenance_records')
+      .select('id', { count: 'exact', head: true });
+    if (countError) throw countError;
+    const ticketCode = `MNT-${currentYear}-${((count || 0) + 1).toString().padStart(4, '0')}`;
     const id = `mnt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
 
     const mntCategory = category || (asset.category === 'MACHINERY' || asset.category === 'ELECTRICAL' ? asset.category : 'ELECTRONIC');
 
-    db.prepare(`
-      INSERT INTO maintenance_records (
-        id, ticket_number, asset_id, type, category, title, description,
-        technician_name, scheduled_date, cost, status, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    const { error: insertError } = await supabaseAdmin.from('maintenance_records').insert({
       id,
-      ticketCode,
+      ticket_number: ticketCode,
       asset_id,
-      type || 'PREVENTIVE',
-      mntCategory,
+      type: type || 'PREVENTIVE',
+      category: mntCategory,
       title,
-      description || null,
-      technician_name || 'Teknisi Sarpras',
+      description: description || null,
+      technician_name: technician_name || 'Teknisi Sarpras',
       scheduled_date,
-      Number(cost) || 0,
-      'SCHEDULED',
-      now
-    );
+      cost: Number(cost) || 0,
+      status: 'SCHEDULED',
+      created_at: now,
+    });
+    if (insertError) throw insertError;
 
     // If it is a corrective maintenance ticket, set asset status to DALAM_PERAWATAN
     if (type === 'CORRECTIVE') {
-      db.prepare("UPDATE assets SET status = 'DALAM_PERAWATAN' WHERE id = ?").run(asset_id);
+      const { error: assetUpdateError } = await supabaseAdmin.from('assets').update({ status: 'DALAM_PERAWATAN' }).eq('id', asset_id);
+      if (assetUpdateError) throw assetUpdateError;
     }
 
-    const created = db.prepare(`
-      SELECT 
-        m.*,
-        a.name as asset_name,
-        a.code as asset_code
-      FROM maintenance_records m
-      JOIN assets a ON m.asset_id = a.id
-      WHERE m.id = ?
-    `).get(id);
+    const { data: createdRow, error: createdError } = await supabaseAdmin
+      .from('maintenance_records')
+      .select('*, assets(name, code)')
+      .eq('id', id)
+      .single();
+    if (createdError) throw createdError;
+    const created = { ...createdRow, asset_name: createdRow.assets?.name, asset_code: createdRow.assets?.code, assets: undefined };
 
     return NextResponse.json({
       success: true,

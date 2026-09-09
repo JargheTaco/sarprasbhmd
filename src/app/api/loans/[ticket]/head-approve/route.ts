@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface Params {
   params: Promise<{ ticket: string }>;
@@ -26,9 +26,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       ticket_code: string;
     }
 
-    const loan = db.prepare(`
-      SELECT id, status, ticket_code FROM loan_requests WHERE ticket_code = ? OR id = ?
-    `).get(ticket, ticket) as LoanRow | undefined;
+    const { data: loans, error: findError } = await supabaseAdmin
+      .from('loan_requests')
+      .select('id, status, ticket_code')
+      .or(`ticket_code.eq.${ticket},id.eq.${ticket}`)
+      .limit(1);
+    if (findError) throw findError;
+    const loan = loans?.[0] as LoanRow | undefined;
 
     if (!loan) {
       return NextResponse.json({ error: 'Pengajuan peminjaman tidak ditemukan' }, { status: 404 });
@@ -50,25 +54,17 @@ export async function POST(req: NextRequest, { params }: Params) {
     const now = new Date().toISOString();
     const newStatus = action === 'REJECT' ? 'REJECTED' : 'APPROVED';
 
-    db.prepare(`
-      UPDATE loan_requests
-      SET 
-        status = ?,
-        head_notes = ?,
-        head_checklist = ?,
-        head_approved_at = ?,
-        head_approved_by = ?
-      WHERE id = ?
-    `).run(
-      newStatus,
-      notes || (action === 'REJECT' ? 'Ditolak oleh Kepala Sarpras' : 'Disetujui oleh Kepala Sarpras'),
-      checklistJson,
-      now,
-      user.name,
-      loan.id
-    );
+    const { error: updateError } = await supabaseAdmin.from('loan_requests').update({
+      status: newStatus,
+      head_notes: notes || (action === 'REJECT' ? 'Ditolak oleh Kepala Sarpras' : 'Disetujui oleh Kepala Sarpras'),
+      head_checklist: JSON.parse(checklistJson),
+      head_approved_at: now,
+      head_approved_by: user.name,
+    }).eq('id', loan.id);
+    if (updateError) throw updateError;
 
-    const updated = db.prepare('SELECT * FROM loan_requests WHERE id = ?').get(loan.id);
+    const { data: updated, error: fetchError } = await supabaseAdmin.from('loan_requests').select('*').eq('id', loan.id).single();
+    if (fetchError) throw fetchError;
 
     return NextResponse.json({
       success: true,

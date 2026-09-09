@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface Params {
   params: Promise<{ ticket: string }>;
@@ -34,9 +34,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       category: string;
     }
 
-    const loan = db.prepare(`
-      SELECT id, status, asset_id, ticket_code, borrower_name FROM loan_requests WHERE ticket_code = ? OR id = ?
-    `).get(ticket, ticket) as LoanRow | undefined;
+    const { data: loans, error: findError } = await supabaseAdmin
+      .from('loan_requests')
+      .select('id, status, asset_id, ticket_code, borrower_name')
+      .or(`ticket_code.eq.${ticket},id.eq.${ticket}`)
+      .limit(1);
+    if (findError) throw findError;
+    const loan = loans?.[0] as LoanRow | undefined;
 
     if (!loan) {
       return NextResponse.json({ error: 'Peminjaman tidak ditemukan' }, { status: 404 });
@@ -49,7 +53,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const asset = db.prepare('SELECT id, name, category FROM assets WHERE id = ?').get(loan.asset_id) as AssetRow | undefined;
+    const { data: asset, error: assetFindError } = await supabaseAdmin
+      .from('assets')
+      .select('id, name, category')
+      .eq('id', loan.asset_id)
+      .maybeSingle<AssetRow>();
+    if (assetFindError) throw assetFindError;
 
     const returnChecklistJson = JSON.stringify({
       condition_ok: !!condition_ok,
@@ -62,56 +71,56 @@ export async function POST(req: NextRequest, { params }: Params) {
     const now = new Date().toISOString();
 
     // Mark loan as RETURNED
-    db.prepare(`
-      UPDATE loan_requests
-      SET status = 'RETURNED', return_checklist = ?, returned_at = ?
-      WHERE id = ?
-    `).run(returnChecklistJson, now, loan.id);
+    const { error: loanUpdateError } = await supabaseAdmin.from('loan_requests').update({
+      status: 'RETURNED',
+      return_checklist: JSON.parse(returnChecklistJson),
+      returned_at: now,
+    }).eq('id', loan.id);
+    if (loanUpdateError) throw loanUpdateError;
 
     // If unit is in good condition, mark asset TERSEDIA.
     // If unit has issue, mark DALAM_PERAWATAN or RUSAK_RINGAN.
     const newAssetStatus = (!condition_ok || create_maintenance_ticket) ? 'DALAM_PERAWATAN' : 'TERSEDIA';
     const newAssetCondition = !condition_ok ? 'RUSAK_RINGAN' : 'BAIK';
 
-    db.prepare(`
-      UPDATE assets
-      SET status = ?, condition = ?
-      WHERE id = ?
-    `).run(newAssetStatus, newAssetCondition, loan.asset_id);
+    const { error: assetUpdateError } = await supabaseAdmin.from('assets').update({
+      status: newAssetStatus,
+      condition: newAssetCondition,
+    }).eq('id', loan.asset_id);
+    if (assetUpdateError) throw assetUpdateError;
 
     // If staff requests maintenance ticket creation due to issue
     if (create_maintenance_ticket && asset) {
       const currentYear = new Date().getFullYear();
-      const countMnt = db.prepare('SELECT COUNT(*) as count FROM maintenance_records').get() as { count: number };
-      const mntCode = `MNT-${currentYear}-${(countMnt.count + 1).toString().padStart(4, '0')}`;
+      const { count, error: countError } = await supabaseAdmin
+        .from('maintenance_records')
+        .select('id', { count: 'exact', head: true });
+      if (countError) throw countError;
+      const mntCode = `MNT-${currentYear}-${((count || 0) + 1).toString().padStart(4, '0')}`;
       const mntId = `mnt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
       let mntCategory = 'ELECTRONIC';
       if (asset.category === 'MACHINERY') mntCategory = 'MACHINERY';
       if (asset.category === 'ELECTRICAL') mntCategory = 'ELECTRICAL';
 
-      db.prepare(`
-        INSERT INTO maintenance_records (
-          id, ticket_number, asset_id, type, category, title, description,
-          technician_name, scheduled_date, status, created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        mntId,
-        mntCode,
-        asset.id,
-        'CORRECTIVE',
-        mntCategory,
-        `Perbaikan Pasca Pengembalian (${loan.ticket_code}) - ${asset.name}`,
-        maintenance_description || notes || `Laporan kendala saat pengembalian oleh ${loan.borrower_name}`,
-        'Belum Ditugaskan',
-        new Date().toISOString().split('T')[0],
-        'SCHEDULED',
-        now
-      );
+      const { error: maintenanceError } = await supabaseAdmin.from('maintenance_records').insert({
+        id: mntId,
+        ticket_number: mntCode,
+        asset_id: asset.id,
+        type: 'CORRECTIVE',
+        category: mntCategory,
+        title: `Perbaikan Pasca Pengembalian (${loan.ticket_code}) - ${asset.name}`,
+        description: maintenance_description || notes || `Laporan kendala saat pengembalian oleh ${loan.borrower_name}`,
+        technician_name: 'Belum Ditugaskan',
+        scheduled_date: new Date().toISOString().split('T')[0],
+        status: 'SCHEDULED',
+        created_at: now,
+      });
+      if (maintenanceError) throw maintenanceError;
     }
 
-    const updated = db.prepare('SELECT * FROM loan_requests WHERE id = ?').get(loan.id);
+    const { data: updated, error: fetchError } = await supabaseAdmin.from('loan_requests').select('*').eq('id', loan.id).single();
+    if (fetchError) throw fetchError;
 
     return NextResponse.json({
       success: true,

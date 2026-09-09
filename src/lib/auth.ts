@@ -1,8 +1,12 @@
-import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { cookies } from 'next/headers';
 
 const SECRET_KEY = process.env.AUTH_SECRET || 'sarpras-jwt-campus-secret-key-2026-secure';
 const COOKIE_NAME = 'sarpras_session';
+
+export function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
 
 export interface AuthUser {
   id: string;

@@ -1,5 +1,5 @@
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
 interface Params {
   params: Promise<{ ticket: string }>;
@@ -9,19 +9,23 @@ export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { ticket } = await params;
 
-    const loan = db.prepare(`
-      SELECT 
-        l.*,
-        a.name as asset_name,
-        a.code as asset_code,
-        a.category as asset_category,
-        a.location as asset_location,
-        a.specs as asset_specs,
-        a.condition as asset_condition
-      FROM loan_requests l
-      JOIN assets a ON l.asset_id = a.id
-      WHERE l.ticket_code = ? OR l.id = ?
-    `).get(ticket, ticket);
+    const { data: rows, error } = await supabaseAdmin
+      .from('loan_requests')
+      .select('*, assets(name, code, category, location, specs, condition)')
+      .or(`ticket_code.eq.${ticket},id.eq.${ticket}`)
+      .limit(1);
+    if (error) throw error;
+    const row = rows?.[0];
+    const loan = row && {
+      ...row,
+      asset_name: row.assets?.name,
+      asset_code: row.assets?.code,
+      asset_category: row.assets?.category,
+      asset_location: row.assets?.location,
+      asset_specs: row.assets?.specs,
+      asset_condition: row.assets?.condition,
+      assets: undefined,
+    };
 
     if (!loan) {
       return NextResponse.json(

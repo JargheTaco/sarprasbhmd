@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -9,7 +9,8 @@ interface Params {
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(id);
+    const { data: asset, error } = await supabaseAdmin.from('assets').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
     if (!asset) {
       return NextResponse.json({ error: 'Aset tidak ditemukan' }, { status: 404 });
     }
@@ -34,28 +35,30 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const body = await req.json();
     const { name, category, location, condition, status, specs, capacity, purchase_year } = body;
 
-    const existing = db.prepare('SELECT id FROM assets WHERE id = ?').get(id);
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('assets')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+    if (existingError) throw existingError;
     if (!existing) {
       return NextResponse.json({ error: 'Aset tidak ditemukan' }, { status: 404 });
     }
 
-    db.prepare(`
-      UPDATE assets
-      SET name = ?, category = ?, location = ?, condition = ?, status = ?, specs = ?, capacity = ?, purchase_year = ?
-      WHERE id = ?
-    `).run(
+    const { error: updateError } = await supabaseAdmin.from('assets').update({
       name,
       category,
       location,
       condition,
       status,
-      specs || null,
-      Number(capacity) || 0,
-      Number(purchase_year) || new Date().getFullYear(),
-      id
-    );
+      specs: specs || null,
+      capacity: Number(capacity) || 0,
+      purchase_year: Number(purchase_year) || new Date().getFullYear(),
+    }).eq('id', id);
+    if (updateError) throw updateError;
 
-    const updated = db.prepare('SELECT * FROM assets WHERE id = ?').get(id);
+    const { data: updated, error: fetchError } = await supabaseAdmin.from('assets').select('*').eq('id', id).single();
+    if (fetchError) throw fetchError;
     return NextResponse.json({ success: true, asset: updated });
   } catch (err: unknown) {
     console.error('Update asset error:', err);
@@ -76,10 +79,14 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const { id } = await params;
 
     // Check if asset is currently linked to any active loans
-    const activeLoan = db.prepare(`
-      SELECT id FROM loan_requests
-      WHERE asset_id = ? AND status IN ('PENDING_STAFF', 'PENDING_HEAD', 'APPROVED', 'IN_USE')
-    `).get(id);
+    const { data: activeLoan, error: activeLoanError } = await supabaseAdmin
+      .from('loan_requests')
+      .select('id')
+      .eq('asset_id', id)
+      .in('status', ['PENDING_STAFF', 'PENDING_HEAD', 'APPROVED', 'IN_USE'])
+      .limit(1)
+      .maybeSingle();
+    if (activeLoanError) throw activeLoanError;
 
     if (activeLoan) {
       return NextResponse.json(
@@ -88,7 +95,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       );
     }
 
-    db.prepare('DELETE FROM assets WHERE id = ?').run(id);
+    const { error: deleteError } = await supabaseAdmin.from('assets').delete().eq('id', id);
+    if (deleteError) throw deleteError;
     return NextResponse.json({ success: true, message: 'Aset berhasil dihapus' });
   } catch (err: unknown) {
     console.error('Delete asset error:', err);

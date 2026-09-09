@@ -1,6 +1,6 @@
+import { AuthUser, COOKIE_NAME, createToken, hashPassword } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
-import { db, hashPassword } from '@/lib/db';
-import { createToken, COOKIE_NAME, AuthUser } from '@/lib/auth';
 
 interface UserRow {
   id: string;
@@ -21,9 +21,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = db
-      .prepare('SELECT id, username, password_hash, name, role FROM users WHERE username = ?')
-      .get(username) as UserRow | undefined;
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select('id, username, password_hash, name, role')
+      .eq('username', username)
+      .maybeSingle<UserRow>();
+
+    if (error) {
+      throw error;
+    }
 
     if (!user) {
       return NextResponse.json(

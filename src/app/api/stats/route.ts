@@ -1,47 +1,33 @@
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    // Assets statistics
-    const totalAssets = (db.prepare('SELECT COUNT(*) as c FROM assets').get() as { c: number }).c;
-    const vehicleCount = (db.prepare("SELECT COUNT(*) as c FROM assets WHERE category = 'VEHICLE'").get() as { c: number }).c;
-    const roomCount = (db.prepare("SELECT COUNT(*) as c FROM assets WHERE category = 'ROOM'").get() as { c: number }).c;
-    const maintenanceAssetsCount = (db.prepare("SELECT COUNT(*) as c FROM assets WHERE category IN ('ELECTRONIC', 'MACHINERY', 'ELECTRICAL')").get() as { c: number }).c;
-    const availableAssets = (db.prepare("SELECT COUNT(*) as c FROM assets WHERE status = 'TERSEDIA'").get() as { c: number }).c;
+    const [{ data: assets, error: assetsError }, { data: loans, error: loansError }, { data: maintenance, error: maintenanceError }] = await Promise.all([
+      supabaseAdmin.from('assets').select('*'),
+      supabaseAdmin.from('loan_requests').select('*, assets(name, category)').order('created_at', { ascending: false }),
+      supabaseAdmin.from('maintenance_records').select('*, assets(name, code)').order('created_at', { ascending: false }),
+    ]);
+    if (assetsError || loansError || maintenanceError) {
+      throw assetsError || loansError || maintenanceError;
+    }
 
-    // Loan statistics
-    const pendingStaff = (db.prepare("SELECT COUNT(*) as c FROM loan_requests WHERE status = 'PENDING_STAFF'").get() as { c: number }).c;
-    const pendingHead = (db.prepare("SELECT COUNT(*) as c FROM loan_requests WHERE status = 'PENDING_HEAD'").get() as { c: number }).c;
-    const approvedLoans = (db.prepare("SELECT COUNT(*) as c FROM loan_requests WHERE status = 'APPROVED'").get() as { c: number }).c;
-    const inUseLoans = (db.prepare("SELECT COUNT(*) as c FROM loan_requests WHERE status = 'IN_USE'").get() as { c: number }).c;
-    const returnedLoans = (db.prepare("SELECT COUNT(*) as c FROM loan_requests WHERE status = 'RETURNED'").get() as { c: number }).c;
-
-    // Maintenance statistics
-    const scheduledMnt = (db.prepare("SELECT COUNT(*) as c FROM maintenance_records WHERE status = 'SCHEDULED'").get() as { c: number }).c;
-    const inProgressMnt = (db.prepare("SELECT COUNT(*) as c FROM maintenance_records WHERE status = 'IN_PROGRESS'").get() as { c: number }).c;
-    const completedMnt = (db.prepare("SELECT COUNT(*) as c FROM maintenance_records WHERE status = 'COMPLETED'").get() as { c: number }).c;
-
-    // Recent activities
-    const recentLoans = db.prepare(`
-      SELECT 
-        l.id, l.ticket_code, l.borrower_name, l.borrower_role, l.start_date, l.end_date, l.status, l.created_at,
-        a.name as asset_name, a.category as asset_category
-      FROM loan_requests l
-      JOIN assets a ON l.asset_id = a.id
-      ORDER BY l.created_at DESC
-      LIMIT 5
-    `).all();
-
-    const recentMaintenances = db.prepare(`
-      SELECT 
-        m.id, m.ticket_number, m.title, m.category, m.status, m.scheduled_date, m.technician_name,
-        a.name as asset_name, a.code as asset_code
-      FROM maintenance_records m
-      JOIN assets a ON m.asset_id = a.id
-      ORDER BY m.created_at DESC
-      LIMIT 5
-    `).all();
+    const count = (rows: { status?: string; category?: string }[], predicate: (row: { status?: string; category?: string }) => boolean) => rows.filter(predicate).length;
+    const totalAssets = assets.length;
+    const vehicleCount = count(assets, (row) => row.category === 'VEHICLE');
+    const roomCount = count(assets, (row) => row.category === 'ROOM');
+    const maintenanceAssetsCount = count(assets, (row) => ['ELECTRONIC', 'MACHINERY', 'ELECTRICAL'].includes(row.category || ''));
+    const availableAssets = count(assets, (row) => row.status === 'TERSEDIA');
+    const pendingStaff = count(loans, (row) => row.status === 'PENDING_STAFF');
+    const pendingHead = count(loans, (row) => row.status === 'PENDING_HEAD');
+    const approvedLoans = count(loans, (row) => row.status === 'APPROVED');
+    const inUseLoans = count(loans, (row) => row.status === 'IN_USE');
+    const returnedLoans = count(loans, (row) => row.status === 'RETURNED');
+    const scheduledMnt = count(maintenance, (row) => row.status === 'SCHEDULED');
+    const inProgressMnt = count(maintenance, (row) => row.status === 'IN_PROGRESS');
+    const completedMnt = count(maintenance, (row) => row.status === 'COMPLETED');
+    const recentLoans = loans.slice(0, 5).map((loan) => ({ ...loan, asset_name: loan.assets?.name, asset_category: loan.assets?.category, assets: undefined }));
+    const recentMaintenances = maintenance.slice(0, 5).map((record) => ({ ...record, asset_name: record.assets?.name, asset_code: record.assets?.code, assets: undefined }));
 
     return NextResponse.json({
       success: true,

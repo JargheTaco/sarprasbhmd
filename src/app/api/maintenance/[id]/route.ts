@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -26,54 +26,44 @@ export async function PUT(req: NextRequest, { params }: Params) {
       status: string;
     }
 
-    const mnt = db.prepare('SELECT id, asset_id, status FROM maintenance_records WHERE id = ?').get(id) as MntRow | undefined;
+    const { data: mnt, error: findError } = await supabaseAdmin
+      .from('maintenance_records')
+      .select('id, asset_id, status')
+      .eq('id', id)
+      .maybeSingle<MntRow>();
+    if (findError) throw findError;
     if (!mnt) {
       return NextResponse.json({ error: 'Data perawatan tidak ditemukan' }, { status: 404 });
     }
 
     const completed_date = status === 'COMPLETED' ? new Date().toISOString().split('T')[0] : null;
 
-    db.prepare(`
-      UPDATE maintenance_records
-      SET 
-        status = COALESCE(?, status),
-        technician_name = COALESCE(?, technician_name),
-        scheduled_date = COALESCE(?, scheduled_date),
-        cost = COALESCE(?, cost),
-        action_taken = COALESCE(?, action_taken),
-        spare_parts = COALESCE(?, spare_parts),
-        completed_date = CASE WHEN ? = 'COMPLETED' THEN ? ELSE completed_date END
-      WHERE id = ?
-    `).run(
-      status || null,
-      technician_name || null,
-      scheduled_date || null,
-      cost !== undefined ? Number(cost) : null,
-      action_taken || null,
-      spare_parts || null,
-      status || null,
-      completed_date,
-      id
-    );
+    const changes: Record<string, string | number | null> = {};
+    if (status) changes.status = status;
+    if (technician_name) changes.technician_name = technician_name;
+    if (scheduled_date) changes.scheduled_date = scheduled_date;
+    if (cost !== undefined) changes.cost = Number(cost);
+    if (action_taken) changes.action_taken = action_taken;
+    if (spare_parts) changes.spare_parts = spare_parts;
+    if (status === 'COMPLETED') changes.completed_date = completed_date;
+    const { error: updateError } = await supabaseAdmin.from('maintenance_records').update(changes).eq('id', id);
+    if (updateError) throw updateError;
 
     // If completed, return asset to TERSEDIA and condition to BAIK
     if (status === 'COMPLETED') {
-      db.prepare(`
-        UPDATE assets
-        SET status = 'TERSEDIA', condition = 'BAIK'
-        WHERE id = ?
-      `).run(mnt.asset_id);
+      const { error: assetError } = await supabaseAdmin.from('assets')
+        .update({ status: 'TERSEDIA', condition: 'BAIK' })
+        .eq('id', mnt.asset_id);
+      if (assetError) throw assetError;
     }
 
-    const updated = db.prepare(`
-      SELECT 
-        m.*,
-        a.name as asset_name,
-        a.code as asset_code
-      FROM maintenance_records m
-      JOIN assets a ON m.asset_id = a.id
-      WHERE m.id = ?
-    `).get(id);
+    const { data: updatedRow, error: fetchError } = await supabaseAdmin
+      .from('maintenance_records')
+      .select('*, assets(name, code)')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw fetchError;
+    const updated = { ...updatedRow, asset_name: updatedRow.assets?.name, asset_code: updatedRow.assets?.code, assets: undefined };
 
     return NextResponse.json({
       success: true,
@@ -97,7 +87,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
 
     const { id } = await params;
-    db.prepare('DELETE FROM maintenance_records WHERE id = ?').run(id);
+    const { error } = await supabaseAdmin.from('maintenance_records').delete().eq('id', id);
+    if (error) throw error;
     return NextResponse.json({ success: true, message: 'Catatan perawatan berhasil dihapus' });
   } catch (err: unknown) {
     console.error('Delete maintenance error:', err);

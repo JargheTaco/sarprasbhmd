@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,28 +9,22 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('q');
 
-    let sql = 'SELECT * FROM assets WHERE 1=1';
-    const params: (string | number)[] = [];
+    let query = supabaseAdmin.from('assets').select('*');
 
     if (category && category !== 'ALL') {
-      sql += ' AND category = ?';
-      params.push(category);
+      query = query.eq('category', category);
     }
 
     if (status && status !== 'ALL') {
-      sql += ' AND status = ?';
-      params.push(status);
+      query = query.eq('status', status);
     }
 
     if (search) {
-      sql += ' AND (name LIKE ? OR code LIKE ? OR location LIKE ? OR specs LIKE ?)';
-      const term = `%${search}%`;
-      params.push(term, term, term, term);
+      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
     }
 
-    sql += ' ORDER BY created_at DESC';
-
-    const assets = db.prepare(sql).all(...params);
+    const { data: assets, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
     return NextResponse.json({ success: true, assets });
   } catch (err: unknown) {
     console.error('Fetch assets error:', err);
@@ -59,7 +53,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Check code uniqueness
-    const existing = db.prepare('SELECT id FROM assets WHERE code = ?').get(code);
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('assets')
+      .select('id')
+      .eq('code', code.toUpperCase())
+      .maybeSingle();
+    if (existingError) throw existingError;
     if (existing) {
       return NextResponse.json(
         { error: `Kode aset ${code} sudah digunakan oleh aset lain` },
@@ -70,24 +69,27 @@ export async function POST(req: NextRequest) {
     const id = `ast_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
 
-    db.prepare(`
-      INSERT INTO assets (id, code, name, category, location, condition, status, specs, capacity, purchase_year, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    const { error: insertError } = await supabaseAdmin.from('assets').insert({
       id,
-      code.toUpperCase(),
+      code: code.toUpperCase(),
       name,
       category,
       location,
-      condition || 'BAIK',
-      status || 'TERSEDIA',
-      specs || null,
-      Number(capacity) || 0,
-      Number(purchase_year) || new Date().getFullYear(),
-      now
-    );
+      condition: condition || 'BAIK',
+      status: status || 'TERSEDIA',
+      specs: specs || null,
+      capacity: Number(capacity) || 0,
+      purchase_year: Number(purchase_year) || new Date().getFullYear(),
+      created_at: now,
+    });
+    if (insertError) throw insertError;
 
-    const newAsset = db.prepare('SELECT * FROM assets WHERE id = ?').get(id);
+    const { data: newAsset, error: fetchError } = await supabaseAdmin
+      .from('assets')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw fetchError;
     return NextResponse.json({ success: true, asset: newAsset });
   } catch (err: unknown) {
     console.error('Create asset error:', err);
