@@ -1,8 +1,9 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { assertSupabaseConfigured, supabaseAdmin, supabaseConfigErrorMessage } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   try {
+    assertSupabaseConfigured();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const assetId = searchParams.get('asset_id');
@@ -41,13 +42,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, loans });
   } catch (err: unknown) {
     console.error('Fetch loans error:', err);
-    return NextResponse.json({ error: 'Gagal memuat data peminjaman' }, { status: 500 });
+    const message = err instanceof Error && err.message.includes('Supabase belum dikonfigurasi')
+      ? supabaseConfigErrorMessage
+      : 'Gagal memuat data peminjaman';
+    return NextResponse.json({ error: message }, { status: 503 });
   }
 }
 
 // PUBLIC SUBMISSION - NO LOGIN REQUIRED
 export async function POST(req: NextRequest) {
   try {
+    assertSupabaseConfigured();
     const body = await req.json();
     const {
       borrower_name,
@@ -204,9 +209,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     console.error('Submit loan error:', err);
+    const message = err instanceof Error && err.message.includes('Supabase belum dikonfigurasi')
+      ? supabaseConfigErrorMessage
+      : 'Terjadi kegagalan server saat memproses pengajuan peminjaman';
     return NextResponse.json(
-      { error: 'Terjadi kegagalan server saat memproses pengajuan peminjaman' },
-      { status: 500 }
+      { error: message },
+      { status: 503 }
     );
   }
 }
