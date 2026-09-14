@@ -1,24 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Package, 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit3, 
-  Trash2, 
-  Building2, 
-  Car, 
-  Tv, 
-  Wrench, 
-  Zap, 
-  CheckCircle2, 
-  AlertCircle,
-  Printer,
-  FileSpreadsheet
-} from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
+import {
+  AlertCircle,
+  Edit3,
+  Plus,
+  Printer,
+  Search,
+  Trash2
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface Asset {
   id: string;
@@ -342,7 +333,7 @@ export default function InventarisPage() {
                     placeholder="Contoh: MOB-004"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono disabled:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 font-mono placeholder:text-slate-400 disabled:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   />
                 </div>
 
@@ -351,7 +342,7 @@ export default function InventarisPage() {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   >
                     <option value="VEHICLE">Mobil Kampus</option>
                     <option value="ROOM">Ruang Kelas & Aula</option>
@@ -371,7 +362,7 @@ export default function InventarisPage() {
                   placeholder="Contoh: Toyota Avanza Dinas / Proyektor Epson"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                 />
               </div>
 
@@ -383,7 +374,7 @@ export default function InventarisPage() {
                   placeholder="Contoh: Pool Garasi Rektorat / Gedung B Lt. 2"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                 />
               </div>
 
@@ -393,7 +384,7 @@ export default function InventarisPage() {
                   <select
                     value={formData.condition}
                     onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   >
                     <option value="BAIK">Kondisi Baik</option>
                     <option value="RUSAK_RINGAN">Rusak Ringan</option>
@@ -406,7 +397,7 @@ export default function InventarisPage() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   >
                     <option value="TERSEDIA">Tersedia</option>
                     <option value="DIPINJAM">Sedang Dipinjam</option>
@@ -422,7 +413,7 @@ export default function InventarisPage() {
                     type="number"
                     value={formData.capacity}
                     onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   />
                 </div>
                 <div className="space-y-1">
@@ -431,7 +422,7 @@ export default function InventarisPage() {
                     type="number"
                     value={formData.purchase_year}
                     onChange={(e) => setFormData({ ...formData, purchase_year: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   />
                 </div>
               </div>
@@ -443,7 +434,7 @@ export default function InventarisPage() {
                   placeholder="Nomor plat, daya listrik, tipe transmisi, kelengkapan..."
                   value={formData.specs}
                   onChange={(e) => setFormData({ ...formData, specs: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                 />
               </div>
 
