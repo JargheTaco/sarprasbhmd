@@ -14,7 +14,7 @@ export const hasSupabaseConfig = Boolean(
 export const supabaseConfigErrorMessage =
   'Supabase belum dikonfigurasi dengan benar. Periksa NEXT_PUBLIC_SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY di .env.local lalu restart server.';
 
-export function assertSupabaseConfigured(): asserts hasSupabaseConfig {
+export function assertSupabaseConfigured(): void {
   if (!hasSupabaseConfig) {
     throw new Error(supabaseConfigErrorMessage);
   }
