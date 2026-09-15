@@ -1,6 +1,5 @@
-import React from 'react';
+import { Building2, FileCheck, Mail, MapPin, Phone, Shield, Wrench } from 'lucide-react';
 import Link from 'next/link';
-import { Building2, Shield, Wrench, FileCheck, Phone, Mail, MapPin } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -73,7 +72,7 @@ export function Footer() {
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
-                <span>Gedung Biro Administrasi Umum & Sarpras Lt. 1, Kampus Utama</span>
+                <span>Gedung E Kampus Selatan Lt. E2.9, Kampus Selatan</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-500 shrink-0" />

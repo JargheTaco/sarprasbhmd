@@ -1,24 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import {
+    Building2,
+    Clock,
+    FileCheck2,
+    Globe,
+    LayoutDashboard,
+    LogOut,
+    Menu,
+    Package,
+    Users,
+    Wrench,
+    X
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Building2, 
-  LayoutDashboard, 
-  FileCheck2, 
-  Package, 
-  Wrench, 
-  LogOut, 
-  Globe, 
-  User, 
-  ShieldCheck, 
-  Menu, 
-  X,
-  Bell,
-  CheckCircle2,
-  Clock
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface AuthUser {
   id: string;
@@ -127,6 +124,14 @@ export default function DashboardLayout({
       icon: Wrench,
       badge: null,
     },
+    ...(user?.role === 'ADMIN'
+      ? [{
+          name: 'Manajemen Akun',
+          href: '/dashboard/akun',
+          icon: Users,
+          badge: null,
+        }]
+      : []),
   ];
 
   return (
