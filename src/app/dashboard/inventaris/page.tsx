@@ -2,12 +2,12 @@
 
 import { StatusBadge } from '@/components/StatusBadge';
 import {
-  AlertCircle,
-  Edit3,
-  Plus,
-  Printer,
-  Search,
-  Trash2
+    AlertCircle,
+    Edit3,
+    Plus,
+    Printer,
+    Search,
+    Trash2
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -25,12 +25,17 @@ interface Asset {
   created_at: string;
 }
 
+interface CurrentUser {
+  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
+}
+
 export default function InventarisPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -68,8 +73,27 @@ export default function InventarisPage() {
   };
 
   useEffect(() => {
+    // Fetch after filter changes; the request updates loading and asset state asynchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAssets();
   }, [selectedCategory, selectedStatus, search]);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.authenticated) setCurrentUser(data.user);
+      })
+      .catch(() => {});
+  }, []);
+
+  const canEdit = currentUser?.role === 'ADMIN' || currentUser?.role === 'STAFF_SARPRAS';
+  const assetsByLocation = assets.reduce<Record<string, Asset[]>>((groups, asset) => {
+    const location = asset.location || 'Lokasi belum diisi';
+    groups[location] ??= [];
+    groups[location].push(asset);
+    return groups;
+  }, {});
 
   const handleOpenCreate = () => {
     setEditingAsset(null);
@@ -169,14 +193,62 @@ export default function InventarisPage() {
             <Printer className="w-4 h-4 text-slate-500" />
             <span>Cetak / Ekspor</span>
           </button>
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Aset Baru</span>
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleOpenCreate}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Aset Baru</span>
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h2 className="text-sm font-bold text-blue-950">Ringkasan isi ruangan / lokasi</h2>
+            <p className="text-xs text-blue-800 mt-0.5">
+              Gunakan satu lokasi untuk satu kelas atau ruangan, lalu catat setiap jenis barang sebagai aset.
+            </p>
+          </div>
+          {!canEdit && currentUser && (
+            <span className="text-[10px] font-bold uppercase tracking-wide text-blue-700 bg-white border border-blue-200 rounded-lg px-2 py-1 whitespace-nowrap">
+              Mode lihat saja
+            </span>
+          )}
+        </div>
+        {Object.keys(assetsByLocation).length === 0 ? (
+          <p className="text-xs text-blue-700">Belum ada data lokasi yang sesuai filter.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {Object.entries(assetsByLocation).map(([location, locationAssets]) => (
+              <div key={location} className="bg-white border border-blue-100 rounded-xl p-3">
+                <p className="text-xs font-bold text-slate-900 flex items-center justify-between gap-2">
+                  <span>{location}</span>
+                  <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-md px-1.5 py-0.5">
+                    {locationAssets.length} jenis
+                  </span>
+                </p>
+                <ul className="mt-2 space-y-1 text-[11px] text-slate-600">
+                  {locationAssets.map((asset) => (
+                    <li key={asset.id} className="flex justify-between gap-2">
+                      <span className="truncate">{asset.name}</span>
+                      <span className="font-bold text-slate-800 whitespace-nowrap">
+                        {asset.capacity > 0
+                          ? asset.category === 'ROOM'
+                            ? `${asset.capacity} orang`
+                            : `${asset.capacity} unit`
+                          : '1 unit'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Filter and search bar */}
@@ -232,19 +304,19 @@ export default function InventarisPage() {
                 <th className="px-4 py-3">Kondisi</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Kapasitas</th>
-                <th className="px-4 py-3 text-right">Aksi</th>
+                {canEdit && <th className="px-4 py-3 text-right">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={canEdit ? 8 : 7} className="p-8 text-center text-slate-400">
                     Memuat data master inventaris...
                   </td>
                 </tr>
               ) : assets.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={canEdit ? 8 : 7} className="p-8 text-center text-slate-400">
                     Tidak ada aset ditemukan.
                   </td>
                 </tr>
@@ -273,24 +345,32 @@ export default function InventarisPage() {
                       <StatusBadge status={asset.status} type="asset" />
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {asset.capacity > 0 ? `${asset.capacity} Org` : '-'}
+                      {asset.capacity > 0
+                        ? asset.category === 'ROOM'
+                          ? `${asset.capacity} Org`
+                          : `${asset.capacity} Unit`
+                        : '-'}
                     </td>
-                    <td className="px-4 py-3 text-right space-x-1">
-                      <button
-                        onClick={() => handleOpenEdit(asset)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Edit Aset"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(asset)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Hapus Aset"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                    {canEdit && (
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => handleOpenEdit(asset)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Edit Aset"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        {currentUser?.role === 'ADMIN' && (
+                          <button
+                            onClick={() => handleDelete(asset)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Hapus Aset"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -408,13 +488,15 @@ export default function InventarisPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Kapasitas (Orang / Unit)</label>
+                  <label className="font-bold text-slate-700">Jumlah Unit / Kapasitas</label>
                   <input
                     type="number"
+                    min="0"
                     value={formData.capacity}
                     onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                   />
+                  <p className="text-[10px] text-slate-500">Contoh: Proyektor 2, Kursi 30, Layar 1.</p>
                 </div>
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700">Tahun Pengadaan</label>
