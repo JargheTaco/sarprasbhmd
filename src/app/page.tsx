@@ -94,18 +94,18 @@ export default function HomePage() {
           {/* Badge Tagline */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/20 backdrop-blur-md text-blue-300 text-xs font-semibold">
             <Sparkles className="w-4 h-4 text-blue-400" />
-            Layanan Terpadu Sarana & Prasarana Kampus
+            Layanan Terpadu Sarana & Prasarana Universitas Bhamada Slawi
           </div>
 
           {/* Main Title */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
-            Peminjaman Sarpras Kampus <br className="hidden sm:inline" />
+            Peminjaman Sarpras Universitas Bhamada Slawi <br className="hidden sm:inline" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300">
               Cepat & Tanpa Perlu Login
             </span>
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Ajukan peminjaman mobil dinas kampus, ruang kelas teater, aula serbaguna, hingga perlengkapan pembelajaran secara langsung. Dilengkapi sistem persetujuan bertingkat Staff & Kepala Sarpras secara transparan.
+            Ajukan peminjaman mobil dinas kampus, ruang kelas, aula, auditorium, hingga perlengkapan pembelajaran secara langsung. Dilengkapi sistem persetujuan bertingkat Staff & Kepala Sarpras secara transparan.
           </p>
 
           {/* Quick Tracking Search Bar */}

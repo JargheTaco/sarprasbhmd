@@ -20,11 +20,11 @@ export function Footer() {
                 />
               </div>
               <span className="font-extrabold text-xl text-white tracking-tight">
-                SIM-SARPRAS KAMPUS
+                SIM-SARPRAS Universitas Bhamada Slawi
               </span>
             </div>
             <p className="text-sm text-slate-400 max-w-md leading-relaxed">
-              Sistem Informasi Manajemen Terpadu Sarana dan Prasarana Kampus. Mengakomodasi inventarisasi aset, layanan peminjaman publik terpadu (mobil kampus, ruang kelas, peralatan), alur persetujuan bertingkat, serta pemeliharaan alat elektronik, mesin, dan kelistrikan.
+              Sistem Informasi Manajemen Terpadu Sarana dan Prasarana Universitas Bhamada Slawi. Mengakomodasi inventarisasi aset, layanan peminjaman publik terpadu (mobil kampus, ruang kelas, peralatan), alur persetujuan bertingkat, serta pemeliharaan alat elektronik, mesin, dan kelistrikan.
             </p>
             <div className="pt-2 flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-blue-400 border border-slate-700">
