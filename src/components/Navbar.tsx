@@ -35,19 +35,19 @@ export function Navbar() {
 
   const navLinks = [
     { name: 'Beranda', href: '/', icon: Building2 },
-    { name: 'Katalog Sarpras', href: '/katalog', icon: Car },
-    { name: 'Inventaris Universitas', href: '/inventaris', icon: ClipboardList },
-    { name: 'Jadwal & Ketersediaan', href: '/jadwal', icon: Calendar },
+    { name: 'Katalog', href: '/katalog', icon: Car },
+    { name: 'Inventaris', href: '/inventaris', icon: ClipboardList },
+    { name: 'Jadwal', href: '/jadwal', icon: Calendar },
     { name: 'Lacak Tiket', href: '/tracking', icon: Search },
   ];
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center gap-4 lg:gap-6 min-h-16 py-2">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 flex items-center justify-center group-hover:scale-105 transition-transform">
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+            <div className="w-10 h-10 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               <Image
                 src="/logo-universitas.png"
                 alt="Logo Universitas"
@@ -56,17 +56,17 @@ export function Navbar() {
                 className="w-full h-full object-contain"
               />
             </div>
-            <div>
-              <span className="font-extrabold text-lg tracking-tight text-slate-900 flex items-center gap-1.5">
+            <div className="min-w-0">
+              <span className="font-extrabold text-lg tracking-tight text-slate-900 flex items-center gap-1.5 whitespace-nowrap">
                 SIM-SARPRAS
                 <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded">KAMPUS</span>
               </span>
-              <p className="text-[11px] text-slate-500 font-medium">Inventarisasi, Peminjaman & Perawatan</p>
+              <p className="text-[11px] text-slate-500 font-medium whitespace-nowrap">Inventarisasi, Peminjaman & Perawatan</p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+          <nav className="hidden md:flex flex-1 items-center justify-center gap-1 lg:gap-2 min-w-0">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
@@ -74,7 +74,7 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? 'text-blue-600 bg-blue-50/80 font-semibold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
@@ -88,7 +88,7 @@ export function Navbar() {
           </nav>
 
           {/* Action CTAs */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             <Link
               href="/pinjam"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/30 hover:shadow-md transition-all active:scale-95"
