@@ -100,9 +100,6 @@ export default function HomePage() {
           {/* Main Title */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
             Peminjaman Sarpras Universitas Bhamada Slawi <br className="hidden sm:inline" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300">
-              Cepat & Tanpa Perlu Login
-            </span>
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Ajukan peminjaman mobil dinas kampus, ruang kelas, aula, auditorium, hingga perlengkapan pembelajaran secara langsung. Dilengkapi sistem persetujuan bertingkat Staff & Kepala Sarpras secara transparan.
