@@ -1,19 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { 
-  Building2, 
-  ShieldCheck, 
-  Lock, 
-  User, 
-  ArrowRight, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  AlertCircle,
+  ArrowRight,
+  Building2,
   HelpCircle,
-  Sparkles
+  Lock,
+  User
 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -143,68 +140,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Demo Quick Login Helper */}
-          <div className="pt-4 border-t border-slate-100 space-y-3">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-              Pilih Akun Demo Pengujian:
-            </span>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => setQuickUser('staff', 'staff123')}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-200 text-left transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-slate-800 group-hover:text-blue-700">
-                    1. Staff Sarpras (Verifikator)
-                  </span>
-                  <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono">
-                    staff / staff123
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Checklist ketersediaan unit, kondisi fisik sarpras & supir
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setQuickUser('kepala', 'kepala123')}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 hover:bg-purple-50 hover:border-purple-200 border border-slate-200 text-left transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-slate-800 group-hover:text-purple-700">
-                    2. Kepala Bagian Sarpras (Approval)
-                  </span>
-                  <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono">
-                    kepala / kepala123
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Pemberi wewenang & persetujuan akhir penerbitan surat izin
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setQuickUser('admin', 'admin123')}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 border border-slate-200 text-left transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-slate-800 group-hover:text-emerald-700">
-                    3. Administrator Sistem
-                  </span>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-mono">
-                    admin / admin123
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Kelola master aset & seluruh akses modul
-                </p>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
