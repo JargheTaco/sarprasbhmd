@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import {
+  Building2,
+  Calendar,
+  Car,
+  LayoutDashboard,
+  Menu,
+  Search,
+  Send,
+  ShieldCheck,
+  X
+} from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Building2, 
-  Car, 
-  Calendar, 
-  Send, 
-  Search, 
-  ShieldCheck, 
-  Menu, 
-  X,
-  LayoutDashboard
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -44,8 +45,14 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Building2 className="w-5 h-5" />
+            <div className="w-10 h-10 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Image
+                src="/logo-universitas.png"
+                alt="Logo Universitas"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <span className="font-extrabold text-lg tracking-tight text-slate-900 flex items-center gap-1.5">

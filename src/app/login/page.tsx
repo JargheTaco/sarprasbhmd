@@ -3,11 +3,11 @@
 import {
   AlertCircle,
   ArrowRight,
-  Building2,
   HelpCircle,
   Lock,
   User
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -55,8 +55,14 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-6">
         {/* Brand header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Building2 className="w-6 h-6" />
+          <div className="w-12 h-12 mx-auto flex items-center justify-center">
+            <Image
+              src="/logo-universitas.png"
+              alt="Logo Universitas"
+              width={48}
+              height={48}
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             Portal Petugas Sarpras

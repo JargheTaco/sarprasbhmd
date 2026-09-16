@@ -1,7 +1,6 @@
 'use client';
 
 import {
-    Building2,
     Clock,
     FileCheck2,
     Globe,
@@ -13,6 +12,7 @@ import {
     Wrench,
     X
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -139,8 +139,14 @@ export default function DashboardLayout({
       {/* Mobile Top Navbar */}
       <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white">
-            <Building2 className="w-5 h-5" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Image
+              src="/logo-universitas.png"
+              alt="Logo Universitas"
+              width={32}
+              height={32}
+              className="w-full h-full object-contain"
+            />
           </div>
           <span className="font-bold text-sm tracking-tight">SIM-SARPRAS</span>
         </div>
@@ -161,8 +167,14 @@ export default function DashboardLayout({
         <div className="p-6 space-y-6">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
-              <Building2 className="w-6 h-6" />
+            <div className="w-10 h-10 flex items-center justify-center">
+              <Image
+                src="/logo-universitas.png"
+                alt="Logo Universitas"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <span className="font-extrabold text-base text-white tracking-tight block">

@@ -1,4 +1,5 @@
-import { Building2, FileCheck, Mail, MapPin, Phone, Shield, Wrench } from 'lucide-react';
+import { FileCheck, Mail, MapPin, Phone, Shield, Wrench } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export function Footer() {
@@ -9,8 +10,14 @@ export function Footer() {
           {/* Col 1: Identity */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">
-                <Building2 className="w-5 h-5" />
+              <div className="w-10 h-10 flex items-center justify-center">
+                <Image
+                  src="/logo-universitas.png"
+                  alt="Logo Universitas"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-extrabold text-xl text-white tracking-tight">
                 SIM-SARPRAS KAMPUS
