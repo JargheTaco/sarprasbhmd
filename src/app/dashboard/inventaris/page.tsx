@@ -16,6 +16,8 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  building: string;
+  room: string;
   location: string;
   condition: string;
   status: string;
@@ -44,6 +46,8 @@ export default function InventarisPage() {
     code: '',
     name: '',
     category: 'VEHICLE',
+    building: '',
+    room: '',
     location: '',
     condition: 'BAIK',
     status: 'TERSEDIA',
@@ -89,9 +93,11 @@ export default function InventarisPage() {
 
   const canEdit = currentUser?.role === 'ADMIN' || currentUser?.role === 'STAFF_SARPRAS';
   const assetsByLocation = assets.reduce<Record<string, Asset[]>>((groups, asset) => {
-    const location = asset.location || 'Lokasi belum diisi';
-    groups[location] ??= [];
-    groups[location].push(asset);
+    const building = asset.building || 'Gedung belum diisi';
+    const room = asset.room || asset.location || 'Ruang belum diisi';
+    const key = `${building}|||${room}`;
+    groups[key] ??= [];
+    groups[key].push(asset);
     return groups;
   }, {});
 
@@ -101,6 +107,8 @@ export default function InventarisPage() {
       code: '',
       name: '',
       category: 'VEHICLE',
+      building: '',
+      room: '',
       location: '',
       condition: 'BAIK',
       status: 'TERSEDIA',
@@ -118,6 +126,8 @@ export default function InventarisPage() {
       code: asset.code,
       name: asset.name,
       category: asset.category,
+      building: asset.building || '',
+      room: asset.room || '',
       location: asset.location,
       condition: asset.condition,
       status: asset.status,
@@ -223,10 +233,12 @@ export default function InventarisPage() {
           <p className="text-xs text-blue-700">Belum ada data lokasi yang sesuai filter.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {Object.entries(assetsByLocation).map(([location, locationAssets]) => (
-              <div key={location} className="bg-white border border-blue-100 rounded-xl p-3">
+            {Object.entries(assetsByLocation).map(([locationKey, locationAssets]) => {
+              const [building, room] = locationKey.split('|||');
+              return (
+              <div key={locationKey} className="bg-white border border-blue-100 rounded-xl p-3">
                 <p className="text-xs font-bold text-slate-900 flex items-center justify-between gap-2">
-                  <span>{location}</span>
+                  <span>{building} / {room}</span>
                   <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-md px-1.5 py-0.5">
                     {locationAssets.length} jenis
                   </span>
@@ -246,7 +258,8 @@ export default function InventarisPage() {
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -300,7 +313,7 @@ export default function InventarisPage() {
                 <th className="px-4 py-3">Kode</th>
                 <th className="px-4 py-3">Nama Sarpras</th>
                 <th className="px-4 py-3">Kategori</th>
-                <th className="px-4 py-3">Lokasi</th>
+                <th className="px-4 py-3">Gedung / Ruang</th>
                 <th className="px-4 py-3">Kondisi</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Kapasitas</th>
@@ -336,7 +349,8 @@ export default function InventarisPage() {
                       {asset.category}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {asset.location}
+                      <div>{asset.building || 'Belum ditentukan'}</div>
+                      <div className="text-[11px]">{asset.room || asset.location || 'Belum ditentukan'}</div>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={asset.condition} type="condition" />
@@ -446,16 +460,30 @@ export default function InventarisPage() {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Lokasi / Pool / Gedung *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                <label className="font-bold text-slate-700">Gedung *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Pool Garasi Rektorat / Gedung B Lt. 2"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Contoh: Gedung B"
+                  value={formData.building}
+                  onChange={(e) => setFormData({ ...formData, building: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
                 />
+              </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Ruang / Kelas *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: A-201"
+                    value={formData.room}
+                    onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

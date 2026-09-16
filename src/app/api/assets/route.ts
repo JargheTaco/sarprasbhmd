@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,building.ilike.%${search}%,room.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
     }
 
     const { data: assets, error } = await query.order('created_at', { ascending: false });
@@ -43,11 +43,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { code, name, category, location, condition, status, specs, capacity, purchase_year } = body;
+    const { code, name, category, building, room, location, condition, status, specs, capacity, purchase_year } = body;
 
-    if (!code || !name || !category || !location) {
+    if (!code || !name || !category || !building || !room) {
       return NextResponse.json(
-        { error: 'Kode, Nama, Kategori, dan Lokasi aset wajib diisi' },
+        { error: 'Kode, Nama, Kategori, Gedung, dan Ruang aset wajib diisi' },
         { status: 400 }
       );
     }
@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
       code: code.toUpperCase(),
       name,
       category,
-      location,
+      building,
+      room,
+      location: location || `${building} - ${room}`,
       condition: condition || 'BAIK',
       status: status || 'TERSEDIA',
       specs: specs || null,

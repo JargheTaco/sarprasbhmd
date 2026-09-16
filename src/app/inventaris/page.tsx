@@ -19,6 +19,8 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  building: string;
+  room: string;
   location: string;
   condition: string;
   status: string;
@@ -57,9 +59,11 @@ export default function InventarisPublikPage() {
   }, [selectedCategory, search]);
 
   const assetsByLocation = assets.reduce<Record<string, Asset[]>>((groups, asset) => {
-    const location = asset.location || 'Lokasi belum diisi';
-    groups[location] ??= [];
-    groups[location].push(asset);
+    const building = asset.building || 'Gedung belum diisi';
+    const room = asset.room || asset.location || 'Ruang belum diisi';
+    const key = `${building}|||${room}`;
+    groups[key] ??= [];
+    groups[key].push(asset);
     return groups;
   }, {});
 
@@ -126,12 +130,15 @@ export default function InventarisPublikPage() {
         </div>
       ) : (
         <div className="space-y-5">
-          {Object.entries(assetsByLocation).map(([location, locationAssets]) => (
-            <section key={location} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          {Object.entries(assetsByLocation).map(([locationKey, locationAssets]) => {
+            const [building, room] = locationKey.split('|||');
+            return (
+            <section key={locationKey} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center gap-3">
                 <MapPin className="w-5 h-5 text-blue-600 shrink-0" />
                 <div>
-                  <h2 className="font-bold text-slate-900">{location}</h2>
+                  <h2 className="font-bold text-slate-900">{building}</h2>
+                  <p className="text-sm font-semibold text-blue-700">Ruang {room}</p>
                   <p className="text-xs text-slate-500">{locationAssets.length} jenis aset tercatat</p>
                 </div>
               </div>
@@ -161,7 +168,8 @@ export default function InventarisPublikPage() {
                 ))}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -33,7 +33,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const { id } = await params;
     const body = await req.json();
-    const { name, category, location, condition, status, specs, capacity, purchase_year } = body;
+    const { name, category, building, room, location, condition, status, specs, capacity, purchase_year } = body;
+
+    if (!name || !category || !building || !room) {
+      return NextResponse.json(
+        { error: 'Nama, Kategori, Gedung, dan Ruang aset wajib diisi' },
+        { status: 400 }
+      );
+    }
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('assets')
@@ -48,7 +55,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const { error: updateError } = await supabaseAdmin.from('assets').update({
       name,
       category,
-      location,
+      building,
+      room,
+      location: location || `${building} - ${room}`,
       condition,
       status,
       specs: specs || null,

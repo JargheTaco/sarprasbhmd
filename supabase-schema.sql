@@ -15,6 +15,8 @@ create table if not exists assets (
   code text unique not null,
   name text not null,
   category text not null,
+  building text not null default 'Belum Ditentukan',
+  room text not null default 'Belum Ditentukan',
   location text not null,
   condition text not null,
   status text not null,
@@ -23,6 +25,9 @@ create table if not exists assets (
   purchase_year integer,
   created_at timestamptz not null default now()
 );
+
+alter table assets add column if not exists building text not null default 'Belum Ditentukan';
+alter table assets add column if not exists room text not null default 'Belum Ditentukan';
 
 create table if not exists loan_requests (
   id text primary key,
@@ -75,6 +80,7 @@ create table if not exists maintenance_records (
 );
 
 create index if not exists idx_assets_category_status on assets(category, status);
+create index if not exists idx_assets_building_room on assets(building, room);
 create index if not exists idx_loans_status_created on loan_requests(status, created_at desc);
 create index if not exists idx_loans_asset_dates on loan_requests(asset_id, start_date, end_date);
 create index if not exists idx_maintenance_status_date on maintenance_records(status, scheduled_date);
