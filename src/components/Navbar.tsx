@@ -4,6 +4,7 @@ import {
   Building2,
   Calendar,
   Car,
+  ClipboardList,
   LayoutDashboard,
   Menu,
   Search,
@@ -35,6 +36,7 @@ export function Navbar() {
   const navLinks = [
     { name: 'Beranda', href: '/', icon: Building2 },
     { name: 'Katalog Sarpras', href: '/katalog', icon: Car },
+    { name: 'Inventaris Universitas', href: '/inventaris', icon: ClipboardList },
     { name: 'Jadwal & Ketersediaan', href: '/jadwal', icon: Calendar },
     { name: 'Lacak Tiket', href: '/tracking', icon: Search },
   ];

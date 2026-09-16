@@ -63,13 +63,6 @@ export default function KatalogPage() {
     { label: 'Kelistrikan & Genset', val: 'ELECTRICAL', icon: Zap },
   ];
 
-  const assetsByLocation = assets.reduce<Record<string, Asset[]>>((groups, asset) => {
-    const location = asset.location || 'Lokasi belum diisi';
-    groups[location] ??= [];
-    groups[location].push(asset);
-    return groups;
-  }, {});
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header */}
@@ -131,41 +124,6 @@ export default function KatalogPage() {
           })}
         </div>
       </div>
-
-      {!loading && assets.length > 0 && (
-        <section className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-          <div className="flex items-start gap-3 mb-4">
-            <Building2 className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
-            <div>
-              <h2 className="text-base font-bold text-blue-950">Fasilitas per kelas dan lokasi</h2>
-              <p className="text-xs text-blue-800 mt-0.5">
-                Informasi ini dapat dilihat mahasiswa dan dosen. Perubahan data hanya dilakukan petugas Sarpras.
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {Object.entries(assetsByLocation).map(([location, locationAssets]) => (
-              <div key={location} className="bg-white border border-blue-100 rounded-xl p-4">
-                <h3 className="text-sm font-bold text-slate-900">{location}</h3>
-                <ul className="mt-2 space-y-1.5 text-xs text-slate-600">
-                  {locationAssets.map((asset) => (
-                    <li key={asset.id} className="flex items-center justify-between gap-3">
-                      <span className="truncate">{asset.name}</span>
-                      <span className="font-bold text-slate-800 whitespace-nowrap">
-                        {asset.capacity > 0
-                          ? asset.category === 'ROOM'
-                            ? `${asset.capacity} orang`
-                            : `${asset.capacity} unit`
-                          : '1 unit'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Assets Grid */}
       {loading ? (
