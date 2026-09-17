@@ -178,12 +178,21 @@ export async function POST(request: NextRequest) {
 
     if (assets.length) {
       const { error: insertError } = await supabaseAdmin.from('assets').insert(assets);
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Import assets database error:', insertError);
+        if (insertError.code === '42703' || insertError.code === 'PGRST204') {
+          return NextResponse.json({
+            error: 'Kolom inventaris terbaru belum tersedia di Supabase. Jalankan SQL migrasi assets terlebih dahulu, lalu coba impor ulang.',
+          }, { status: 400 });
+        }
+        throw insertError;
+      }
     }
 
     return NextResponse.json({ success: true, imported: assets.length, skipped: skipped.length, skippedCodes: skipped.slice(0, 20) });
   } catch (error) {
     console.error('Import assets error:', error);
-    return NextResponse.json({ error: 'Gagal mengimpor data inventaris. Pastikan format CSV sesuai contoh.' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Gagal mengimpor data inventaris';
+    return NextResponse.json({ error: `Gagal mengimpor data inventaris: ${message}` }, { status: 500 });
   }
 }

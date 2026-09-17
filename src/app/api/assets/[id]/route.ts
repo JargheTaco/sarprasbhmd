@@ -87,25 +87,44 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     const { id } = await params;
 
-    // Check if asset is currently linked to any active loans
-    const { data: activeLoan, error: activeLoanError } = await supabaseAdmin
+    // Keep historical loan records valid; an asset with any loan history cannot be deleted.
+    const { data: linkedLoan, error: linkedLoanError } = await supabaseAdmin
       .from('loan_requests')
       .select('id')
       .eq('asset_id', id)
-      .in('status', ['PENDING_STAFF', 'PENDING_HEAD', 'APPROVED', 'IN_USE'])
       .limit(1)
       .maybeSingle();
-    if (activeLoanError) throw activeLoanError;
+    if (linkedLoanError) throw linkedLoanError;
 
-    if (activeLoan) {
+    if (linkedLoan) {
       return NextResponse.json(
-        { error: 'Aset tidak dapat dihapus karena masih terkait peminjaman aktif' },
+        { error: 'Aset tidak dapat dihapus karena memiliki riwayat peminjaman. Ubah status menjadi DALAM_PERAWATAN atau edit datanya.' },
+        { status: 400 }
+      );
+    }
+
+    const { data: linkedMaintenance, error: linkedMaintenanceError } = await supabaseAdmin
+      .from('maintenance_records')
+      .select('id')
+      .eq('asset_id', id)
+      .limit(1)
+      .maybeSingle();
+    if (linkedMaintenanceError) throw linkedMaintenanceError;
+    if (linkedMaintenance) {
+      return NextResponse.json(
+        { error: 'Aset tidak dapat dihapus karena memiliki riwayat perawatan. Ubah status atau edit datanya.' },
         { status: 400 }
       );
     }
 
     const { error: deleteError } = await supabaseAdmin.from('assets').delete().eq('id', id);
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error('Delete asset database error:', deleteError);
+      return NextResponse.json(
+        { error: 'Aset tidak dapat dihapus karena masih dipakai oleh data lain di Supabase.' },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ success: true, message: 'Aset berhasil dihapus' });
   } catch (err: unknown) {
     console.error('Delete asset error:', err);
