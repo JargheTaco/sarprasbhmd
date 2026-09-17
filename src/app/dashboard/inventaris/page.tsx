@@ -2,12 +2,13 @@
 
 import { StatusBadge } from '@/components/StatusBadge';
 import {
-    AlertCircle,
-    Edit3,
-    Plus,
-    Printer,
-    Search,
-    Trash2
+  AlertCircle,
+  Edit3,
+  Plus,
+  Printer,
+  Search,
+  Trash2,
+  Upload
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -57,6 +58,8 @@ export default function InventarisPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -179,6 +182,30 @@ export default function InventarisPage() {
     }
   };
 
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setImporting(true);
+    setImportMessage(null);
+    setErrorMsg(null);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/assets/import', { method: 'POST', body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mengimpor inventaris');
+      const duplicateInfo = data.skipped > 0 ? ` ${data.skipped} data dilewati karena nomor inventaris sudah ada.` : '';
+      setImportMessage(`${data.imported} data inventaris berhasil diimpor.${duplicateInfo}`);
+      await fetchAssets();
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : 'Gagal mengimpor inventaris');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -196,6 +223,19 @@ export default function InventarisPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {canEdit && (
+            <label className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer">
+              <Upload className="w-4 h-4" />
+              <span>{importing ? 'Mengimpor...' : 'Impor CSV'}</span>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleImport}
+                disabled={importing}
+                className="hidden"
+              />
+            </label>
+          )}
           <button
             onClick={() => window.print()}
             className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -213,6 +253,12 @@ export default function InventarisPage() {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900">
+        <p className="font-bold">Impor data dari Google Sheets</p>
+        <p className="mt-1">Di Google Sheets pilih File → Download → Comma-separated values (.csv), lalu unggah melalui tombol Impor CSV. Kolom yang dibaca: No. Inventaris, Jenis Barang, Tanggal Perolehan, Harga Pembelian, Nilai Penyusutan, Nilai Buku, dan Keberadaan.</p>
+        {importMessage && <p className="mt-2 font-semibold text-emerald-700">{importMessage}</p>}
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
@@ -478,7 +524,7 @@ export default function InventarisPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: A-201"
+                    placeholder="Contoh: E2.9"
                     value={formData.room}
                     onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-400 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-slate-700"

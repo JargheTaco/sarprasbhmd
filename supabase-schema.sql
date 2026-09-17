@@ -23,11 +23,23 @@ create table if not exists assets (
   specs text,
   capacity integer not null default 0,
   purchase_year integer,
+  purchase_date date,
+  purchase_price numeric(14, 2) not null default 0,
+  depreciation_rate numeric(6, 2) not null default 0,
+  depreciation_previous numeric(14, 2) not null default 0,
+  depreciation_current numeric(14, 2) not null default 0,
+  book_value numeric(14, 2) not null default 0,
   created_at timestamptz not null default now()
 );
 
 alter table assets add column if not exists building text not null default 'Belum Ditentukan';
 alter table assets add column if not exists room text not null default 'Belum Ditentukan';
+alter table assets add column if not exists purchase_date date;
+alter table assets add column if not exists purchase_price numeric(14, 2) not null default 0;
+alter table assets add column if not exists depreciation_rate numeric(6, 2) not null default 0;
+alter table assets add column if not exists depreciation_previous numeric(14, 2) not null default 0;
+alter table assets add column if not exists depreciation_current numeric(14, 2) not null default 0;
+alter table assets add column if not exists book_value numeric(14, 2) not null default 0;
 
 create table if not exists loan_requests (
   id text primary key,
