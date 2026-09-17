@@ -65,6 +65,10 @@ function column(row: Record<string, string>, ...names: string[]) {
   return '';
 }
 
+function findHeaderIndex(headers: string[], ...names: string[]) {
+  return headers.findIndex((header) => names.some((name) => header.includes(normalize(name))));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -83,8 +87,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'CSV tidak berisi data inventaris.' }, { status: 400 });
     }
 
-    const headers = rows[0].map(normalize);
-    const dataRows = rows.slice(1).map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
+    const headerRowIndex = rows.findIndex((row) => {
+      const values = row.map(normalize);
+      return values.some((value) => value.includes('jenis barang')) && values.some((value) => value.includes('keberadaan'));
+    });
+    if (headerRowIndex < 0) {
+      return NextResponse.json({ error: 'Header CSV tidak ditemukan. Pastikan ada kolom Jenis Barang dan Keberadaan.' }, { status: 400 });
+    }
+
+    const headers = rows[headerRowIndex].map(normalize);
+    const nameIndex = findHeaderIndex(headers, 'jenis barang', 'nama barang', 'nama');
+    const codeStartIndex = findHeaderIndex(headers, 'no inventaris', 'nomor inventaris');
+    const dateIndex = findHeaderIndex(headers, 'tanggal perolehan', 'tanggal pembelian', 'purchase date');
+    const dataRows = rows.slice(headerRowIndex + 1).map((values) => {
+      const row = Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
+      if (!column(row, 'no inventaris', 'nomor inventaris', 'kode', 'code') && codeStartIndex >= 0) {
+        const codeParts = values.slice(codeStartIndex, dateIndex > codeStartIndex ? dateIndex : codeStartIndex + 1).filter(Boolean);
+        row[normalize('no inventaris')] = codeParts.join('/');
+      }
+      if (!column(row, 'jenis barang', 'nama barang', 'nama', 'name') && nameIndex >= 0) {
+        row[normalize('jenis barang')] = values[nameIndex] || '';
+      }
+      return row;
+    });
     const codes = dataRows.map((row) => column(row, 'no inventaris', 'nomor inventaris', 'kode', 'code')).filter(Boolean).map((code) => code.toUpperCase());
     const { data: existingAssets, error: existingError } = await supabaseAdmin.from('assets').select('code').in('code', codes);
     if (existingError) throw existingError;
