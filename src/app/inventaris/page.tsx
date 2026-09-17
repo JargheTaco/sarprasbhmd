@@ -8,7 +8,6 @@ import {
     MapPin,
     Search,
     Tv,
-    Users,
     Wrench,
     Zap,
 } from 'lucide-react';
@@ -43,6 +42,9 @@ export default function InventarisPublikPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedBuilding, setSelectedBuilding] = useState('ALL');
+
+  const buildings = Array.from('ABCDEFGHIJKL');
 
   useEffect(() => {
     let url = '/api/assets?';
@@ -58,7 +60,17 @@ export default function InventarisPublikPage() {
       .finally(() => setLoading(false));
   }, [selectedCategory, search]);
 
-  const assetsByLocation = assets.reduce<Record<string, Asset[]>>((groups, asset) => {
+  const getBuildingKey = (building: string) => {
+    const normalized = building.trim().toUpperCase();
+    const match = normalized.match(/^(?:GEDUNG\s*)?([A-L])(?:\d|\s|$)/);
+    return match?.[1] || 'OTHER';
+  };
+
+  const filteredAssets = selectedBuilding === 'ALL'
+    ? assets
+    : assets.filter((asset) => getBuildingKey(asset.building || asset.location) === selectedBuilding);
+
+  const filteredLocations = filteredAssets.reduce<Record<string, Asset[]>>((groups, asset) => {
     const building = asset.building || 'Gedung belum diisi';
     const room = asset.room || asset.location || 'Ruang belum diisi';
     const key = `${building}|||${room}`;
@@ -100,6 +112,33 @@ export default function InventarisPublikPage() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedBuilding('ALL')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              selectedBuilding === 'ALL'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            Semua Inventaris
+          </button>
+          {buildings.map((building) => (
+            <button
+              type="button"
+              key={building}
+              onClick={() => setSelectedBuilding(building)}
+              className={`min-w-10 px-3 py-2 rounded-xl text-xs font-black transition-colors ${
+                selectedBuilding === building
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+              }`}
+            >
+              {building}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
           {categories.map((category) => {
             const Icon = category.icon;
             const selected = selectedCategory === category.value;
@@ -124,13 +163,25 @@ export default function InventarisPublikPage() {
 
       {loading ? (
         <div className="p-16 text-center text-slate-500">Memuat inventaris universitas...</div>
-      ) : assets.length === 0 ? (
+      ) : filteredAssets.length === 0 ? (
         <div className="p-16 text-center bg-white rounded-2xl border border-slate-200 text-slate-500">
-          Inventaris yang dicari belum tersedia.
+          Inventaris untuk {selectedBuilding === 'ALL' ? 'pencarian ini' : `Gedung ${selectedBuilding}`} belum tersedia.
         </div>
       ) : (
-        <div className="space-y-5">
-          {Object.entries(assetsByLocation).map(([locationKey, locationAssets]) => {
+        <div className="space-y-8">
+          {selectedBuilding === 'ALL' && (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+              <h2 className="text-lg font-black text-blue-950">Inventaris Keseluruhan Kampus</h2>
+              <p className="text-xs text-blue-800 mt-1">Seluruh aset ditampilkan berdasarkan gedung dan ruang masing-masing.</p>
+            </div>
+          )}
+          {selectedBuilding !== 'ALL' && (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+              <h2 className="text-lg font-black text-blue-950">Inventaris Gedung {selectedBuilding}</h2>
+              <p className="text-xs text-blue-800 mt-1">Pilih gedung lain untuk melihat inventaris ruang yang berbeda.</p>
+            </div>
+          )}
+          {Object.entries(filteredLocations).map(([locationKey, locationAssets]) => {
             const [building, room] = locationKey.split('|||');
             return (
             <section key={locationKey} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -142,30 +193,34 @@ export default function InventarisPublikPage() {
                   <p className="text-xs text-slate-500">{locationAssets.length} jenis aset tercatat</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-5 py-3">No</th>
+                      <th className="px-5 py-3">Kode Inventaris</th>
+                      <th className="px-5 py-3">Nama Barang</th>
+                      <th className="px-5 py-3">Jumlah</th>
+                      <th className="px-5 py-3">Kondisi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
                 {locationAssets.map((asset) => (
-                  <article key={asset.id} className="border border-slate-200 rounded-xl p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] font-bold text-blue-700">{asset.code}</span>
-                      <StatusBadge status={asset.condition} type="condition" />
-                    </div>
-                    <h3 className="font-bold text-slate-900 mt-3">{asset.name}</h3>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-3">
-                      {asset.specs || 'Belum ada keterangan tambahan.'}
-                    </p>
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                      <span className="inline-flex items-center gap-1 text-slate-600">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        {asset.capacity > 0
-                          ? asset.category === 'ROOM'
-                            ? `${asset.capacity} orang`
-                            : `${asset.capacity} unit`
-                          : '1 unit'}
-                      </span>
-                      <StatusBadge status={asset.status} type="asset" />
-                    </div>
-                  </article>
+                  <tr key={asset.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-3 text-slate-500">{locationAssets.indexOf(asset) + 1}</td>
+                    <td className="px-5 py-3 font-mono font-bold text-blue-700">{asset.code}</td>
+                    <td className="px-5 py-3">
+                      <p className="font-bold text-slate-900">{asset.name}</p>
+                      {asset.specs && <p className="text-[11px] text-slate-500 mt-1">{asset.specs}</p>}
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-slate-700">
+                      {asset.capacity > 0 ? `${asset.capacity} ${asset.category === 'ROOM' ? 'orang' : 'unit'}` : '1 unit'}
+                    </td>
+                    <td className="px-5 py-3"><StatusBadge status={asset.condition} type="condition" /></td>
+                  </tr>
                 ))}
+                  </tbody>
+                </table>
               </div>
             </section>
             );
