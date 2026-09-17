@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'File CSV inventaris wajib dipilih.' }, { status: 400 });
     }
+    const defaultBuilding = String(formData.get('building') || '').trim();
+    const defaultRoom = String(formData.get('room') || '').trim();
 
     const rows = parseCsv(await file.text());
     if (rows.length < 2) {
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const headerRowIndex = rows.findIndex((row) => {
       const values = row.map(normalize);
-      return values.some((value) => value.includes('jenis barang')) && values.some((value) => value.includes('keberadaan'));
+      return values.some((value) => value.includes('jenis barang')) && values.some((value) => value.includes('keberadaan') || value.includes('keterangan') || value.includes('ruang'));
     });
     if (headerRowIndex < 0) {
       return NextResponse.json({ error: 'Header CSV tidak ditemukan. Pastikan ada kolom Jenis Barang dan Keberadaan.' }, { status: 400 });
@@ -104,6 +106,8 @@ export async function POST(request: NextRequest) {
     const depreciationIndex = findHeaderIndex(headers, 'nilai penyusutan', 'nilai penyu', 'penyusutan');
     const bookValueIndex = findHeaderIndex(headers, 'nilai buku');
     const locationIndex = findHeaderIndex(headers, 'keberadaan', 'lokasi', 'location');
+    const buildingIndex = findHeaderIndex(headers, 'gedung', 'building');
+    const roomIndex = findHeaderIndex(headers, 'ruang', 'kelas', 'room');
     const fundingIndex = findHeaderIndex(headers, 'sumber dana');
     const conditionIndex = findHeaderIndex(headers, 'keadaan', 'kondisi');
     const yearIndex = findHeaderIndex(headers, 'th', 'tahun');
@@ -127,6 +131,8 @@ export async function POST(request: NextRequest) {
       }
       if (bookValueIndex >= 0) row[normalize('nilai buku')] = values[bookValueIndex] || '';
       if (locationIndex >= 0) row[normalize('keberadaan')] = values[locationIndex] || '';
+      if (buildingIndex >= 0) row[normalize('gedung')] = values[buildingIndex] || '';
+      if (roomIndex >= 0) row[normalize('ruang')] = values[roomIndex] || '';
       if (fundingIndex >= 0) row[normalize('sumber dana')] = values[fundingIndex] || '';
       if (conditionIndex >= 0) row[normalize('keadaan')] = values[conditionIndex] || '';
       if (yearIndex >= 0) row[normalize('th')] = values[yearIndex] || '';
@@ -150,6 +156,8 @@ export async function POST(request: NextRequest) {
       }
       seenCodes.add(code);
       const location = column(row, 'keberadaan', 'lokasi', 'location') || 'Belum Ditentukan';
+      const building = column(row, 'gedung', 'building') || defaultBuilding || location;
+      const room = column(row, 'ruang', 'kelas', 'room') || defaultRoom || location;
       const purchaseDate = column(row, 'tanggal perolehan', 'tanggal pembelian', 'purchase date');
       const year = Number(column(row, 'th', 'tahun', 'tahun perolehan')) || (purchaseDate.match(/\d{4}/)?.[0] ? Number(purchaseDate.match(/\d{4}/)?.[0]) : new Date().getFullYear());
       assets.push({
@@ -157,8 +165,8 @@ export async function POST(request: NextRequest) {
         code,
         name,
         category: column(row, 'kategori', 'category') || 'ELECTRONIC',
-        building: location,
-        room: location,
+        building,
+        room,
         location,
         condition: column(row, 'keadaan', 'kondisi') || 'BAIK',
         status: 'TERSEDIA',

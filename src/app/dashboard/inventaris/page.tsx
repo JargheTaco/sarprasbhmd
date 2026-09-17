@@ -38,6 +38,7 @@ export default function InventarisPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [selectedLocation, setSelectedLocation] = useState('ALL');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   // Modal states
@@ -60,6 +61,8 @@ export default function InventarisPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importBuilding, setImportBuilding] = useState('');
+  const [importRoom, setImportRoom] = useState('');
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -103,6 +106,9 @@ export default function InventarisPage() {
     groups[key].push(asset);
     return groups;
   }, {});
+  const visibleAssets = selectedLocation === 'ALL'
+    ? assets
+    : assetsByLocation[selectedLocation] || [];
 
   const handleOpenCreate = () => {
     setEditingAsset(null);
@@ -193,6 +199,8 @@ export default function InventarisPage() {
     try {
       const body = new FormData();
       body.append('file', file);
+      body.append('building', importBuilding);
+      body.append('room', importRoom);
       const res = await fetch('/api/assets/import', { method: 'POST', body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal mengimpor inventaris');
@@ -258,6 +266,21 @@ export default function InventarisPage() {
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900">
         <p className="font-bold">Impor data dari Google Sheets</p>
         <p className="mt-1">Di Google Sheets pilih File → Download → Comma-separated values (.csv), lalu unggah melalui tombol Impor CSV. Kolom yang dibaca: No. Inventaris, Jenis Barang, Tanggal Perolehan, Harga Pembelian, Nilai Penyusutan, Nilai Buku, dan Keberadaan.</p>
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
+          <input
+            value={importBuilding}
+            onChange={(event) => setImportBuilding(event.target.value)}
+            placeholder="Gedung default, contoh: D1"
+            className="px-3 py-2 rounded-lg border border-emerald-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <input
+            value={importRoom}
+            onChange={(event) => setImportRoom(event.target.value)}
+            placeholder="Ruang default, contoh: D1.1 / R.MULTIMEDIA"
+            className="px-3 py-2 rounded-lg border border-emerald-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <p className="mt-2 text-emerald-800">Isi lokasi default jika satu file berisi inventaris untuk satu kelas. Kosongkan jika CSV memiliki kolom Gedung dan Ruang.</p>
         {importMessage && <p className="mt-2 font-semibold text-emerald-700">{importMessage}</p>}
       </div>
 
@@ -289,6 +312,13 @@ export default function InventarisPage() {
                     {locationAssets.length} jenis
                   </span>
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLocation(locationKey)}
+                  className="mt-2 text-[11px] font-bold text-blue-700 hover:text-blue-900"
+                >
+                  Lihat inventaris ruang ini
+                </button>
                 <ul className="mt-2 space-y-1 text-[11px] text-slate-600">
                   {locationAssets.map((asset) => (
                     <li key={asset.id} className="flex justify-between gap-2">
@@ -313,6 +343,17 @@ export default function InventarisPage() {
       {/* Filter and search bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
+          <select
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
+            className="px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="ALL">Semua Inventaris</option>
+            {Object.keys(assetsByLocation).map((locationKey) => {
+              const [building, room] = locationKey.split('|||');
+              return <option key={locationKey} value={locationKey}>{building} / {room}</option>;
+            })}
+          </select>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -350,6 +391,25 @@ export default function InventarisPage() {
         </div>
       </div>
 
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">
+            {selectedLocation === 'ALL' ? 'Inventaris Keseluruhan Kampus' : `Inventaris ${selectedLocation.replace('|||', ' / ')}`}
+          </h2>
+          <p className="text-xs text-slate-500">{visibleAssets.length} aset tercatat pada tampilan ini.</p>
+        </div>
+        {selectedLocation !== 'ALL' && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700"
+          >
+            <Printer className="w-4 h-4" />
+            Cetak Daftar Ruang
+          </button>
+        )}
+      </div>
+
       {/* Assets Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
@@ -373,14 +433,14 @@ export default function InventarisPage() {
                     Memuat data master inventaris...
                   </td>
                 </tr>
-              ) : assets.length === 0 ? (
+              ) : visibleAssets.length === 0 ? (
                 <tr>
                   <td colSpan={canEdit ? 8 : 7} className="p-8 text-center text-slate-400">
                     Tidak ada aset ditemukan.
                   </td>
                 </tr>
               ) : (
-                assets.map((asset) => (
+                visibleAssets.map((asset) => (
                   <tr key={asset.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="px-4 py-3 font-mono font-bold text-blue-700">
                       {asset.code}
