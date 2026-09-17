@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     interface LoanRow {
       id: string;
       status: string;
-      asset_id: string;
+      asset_id: string | null;
       ticket_code: string;
       borrower_name: string;
     }
@@ -53,12 +53,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const { data: asset, error: assetFindError } = await supabaseAdmin
-      .from('assets')
-      .select('id, name, category')
-      .eq('id', loan.asset_id)
-      .maybeSingle<AssetRow>();
-    if (assetFindError) throw assetFindError;
+    let asset: AssetRow | null = null;
+    if (loan.asset_id) {
+      const { data: selectedAsset, error: assetFindError } = await supabaseAdmin
+        .from('assets')
+        .select('id, name, category')
+        .eq('id', loan.asset_id)
+        .maybeSingle<AssetRow>();
+      if (assetFindError) throw assetFindError;
+      asset = selectedAsset;
+    }
 
     const returnChecklistJson = JSON.stringify({
       condition_ok: !!condition_ok,
@@ -83,11 +87,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     const newAssetStatus = (!condition_ok || create_maintenance_ticket) ? 'DALAM_PERAWATAN' : 'TERSEDIA';
     const newAssetCondition = !condition_ok ? 'RUSAK_RINGAN' : 'BAIK';
 
-    const { error: assetUpdateError } = await supabaseAdmin.from('assets').update({
-      status: newAssetStatus,
-      condition: newAssetCondition,
-    }).eq('id', loan.asset_id);
-    if (assetUpdateError) throw assetUpdateError;
+    if (loan.asset_id) {
+      const { error: assetUpdateError } = await supabaseAdmin.from('assets').update({
+        status: newAssetStatus,
+        condition: newAssetCondition,
+      }).eq('id', loan.asset_id);
+      if (assetUpdateError) throw assetUpdateError;
+    }
 
     // If staff requests maintenance ticket creation due to issue
     if (create_maintenance_ticket && asset) {

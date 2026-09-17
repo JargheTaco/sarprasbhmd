@@ -1,26 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { 
-  Send, 
-  Car, 
-  Building2, 
-  Tv, 
-  Calendar, 
-  Clock, 
-  User, 
-  Phone, 
-  FileText, 
-  AlertCircle, 
-  CheckCircle2, 
-  ArrowRight,
-  Info,
-  Copy,
-  Check
-} from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
+import {
+    AlertCircle,
+    ArrowRight,
+    Check,
+    CheckCircle2,
+    Copy,
+    Info,
+    Send
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { Suspense, useEffect, useState } from 'react';
 
 interface Asset {
   id: string;
@@ -42,6 +34,8 @@ function PinjamFormContent() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedAssetId, setSelectedAssetId] = useState<string>(preselectedAssetId || '');
+  const [roomBuilding, setRoomBuilding] = useState('');
+  const [roomName, setRoomName] = useState('');
   
   // Form fields
   const [formData, setFormData] = useState({
@@ -90,7 +84,12 @@ function PinjamFormContent() {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!selectedAssetId) {
+    if (selectedCategory === 'ROOM' && (!roomBuilding || !roomName.trim())) {
+      setErrorMsg('Silakan pilih gedung dan isi nama atau nomor ruangan yang ingin dipinjam.');
+      return;
+    }
+
+    if (selectedCategory !== 'ROOM' && !selectedAssetId) {
       setErrorMsg('Silakan pilih salah satu sarana prasarana yang ingin dipinjam.');
       return;
     }
@@ -108,7 +107,9 @@ function PinjamFormContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          asset_id: selectedAssetId,
+          asset_id: selectedCategory === 'ROOM' ? null : selectedAssetId,
+          room_building: selectedCategory === 'ROOM' ? roomBuilding : null,
+          room_name: selectedCategory === 'ROOM' ? roomName.trim() : null,
         }),
       });
 
@@ -202,6 +203,8 @@ function PinjamFormContent() {
               onClick={() => {
                 setSuccessTicket(null);
                 setSelectedAssetId('');
+                setRoomBuilding('');
+                setRoomName('');
                 setFormData({
                   borrower_name: '',
                   borrower_id: '',
@@ -261,7 +264,10 @@ function PinjamFormContent() {
                 <button
                   type="button"
                   key={tab.val}
-                  onClick={() => setSelectedCategory(tab.val)}
+                  onClick={() => {
+                    setSelectedCategory(tab.val);
+                    if (tab.val === 'ROOM') setSelectedAssetId('');
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     selectedCategory === tab.val
                       ? 'bg-blue-600 text-white shadow-xs'
@@ -273,11 +279,41 @@ function PinjamFormContent() {
               ))}
             </div>
 
-            {/* Asset Selection Grid */}
+            {selectedCategory === 'ROOM' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl bg-blue-50 border border-blue-100 p-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Gedung Kampus *</label>
+                  <select
+                    required
+                    value={roomBuilding}
+                    onChange={(e) => setRoomBuilding(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="">Pilih gedung</option>
+                    {Array.from('ABCDEFGHIJKL').map((building) => (
+                      <option key={building} value={`Gedung ${building}`}>Gedung {building}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Nama / Nomor Ruangan *</label>
+                  <input
+                    required
+                    type="text"
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    placeholder="Contoh: A-201, Lab Komputer, atau Aula"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <p className="sm:col-span-2 text-xs text-blue-800">
+                  Pilih gedung A-L lalu tulis ruang yang diperlukan. Ruangan tidak perlu dibuat satu per satu sebagai aset inventaris.
+                </p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
               {filteredAssets.map((asset) => {
                 const isSelected = selectedAssetId === asset.id;
-                const isAvailable = asset.status === 'TERSEDIA';
 
                 return (
                   <div
@@ -308,6 +344,7 @@ function PinjamFormContent() {
                 );
               })}
             </div>
+            )}
 
             {/* Selected Asset Alert */}
             {selectedAsset && (

@@ -52,10 +52,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (loanError) throw loanError;
 
     // Update asset status to DIPINJAM
-    const { error: assetError } = await supabaseAdmin.from('assets')
-      .update({ status: 'DIPINJAM' })
-      .eq('id', loan.asset_id);
-    if (assetError) throw assetError;
+    if (loan.asset_id) {
+      const { error: assetError } = await supabaseAdmin.from('assets')
+        .update({ status: 'DIPINJAM' })
+        .eq('id', loan.asset_id);
+      if (assetError) throw assetError;
+    }
 
     const { data: updated, error: fetchError } = await supabaseAdmin.from('loan_requests').select('*').eq('id', loan.id).single();
     if (fetchError) throw fetchError;

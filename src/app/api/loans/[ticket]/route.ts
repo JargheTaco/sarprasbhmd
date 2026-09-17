@@ -18,10 +18,10 @@ export async function GET(req: NextRequest, { params }: Params) {
     const row = rows?.[0];
     const loan = row && {
       ...row,
-      asset_name: row.assets?.name,
-      asset_code: row.assets?.code,
-      asset_category: row.assets?.category,
-      asset_location: row.assets?.location,
+      asset_name: row.assets?.name || `Ruangan ${row.room_name || ''}`.trim(),
+      asset_code: row.assets?.code || `${row.room_building || ''} / ${row.room_name || ''}`.trim(),
+      asset_category: row.assets?.category || 'ROOM',
+      asset_location: row.assets?.location || row.room_building || '-',
       asset_specs: row.assets?.specs,
       asset_condition: row.assets?.condition,
       assets: undefined,

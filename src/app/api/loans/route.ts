@@ -32,10 +32,10 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
     const loans = (data || []).map((loan) => ({
       ...loan,
-      asset_name: loan.assets?.name,
-      asset_code: loan.assets?.code,
-      asset_category: loan.assets?.category,
-      asset_location: loan.assets?.location,
+      asset_name: loan.assets?.name || `Ruangan ${loan.room_name || ''}`.trim(),
+      asset_code: loan.assets?.code || `${loan.room_building || ''} / ${loan.room_name || ''}`.trim(),
+      asset_category: loan.assets?.category || 'ROOM',
+      asset_location: loan.assets?.location || loan.room_building || '-',
       asset_specs: loan.assets?.specs,
       assets: undefined,
     }));
@@ -69,6 +69,8 @@ export async function POST(req: NextRequest) {
       destination,
       driver_needed,
       attachment_url,
+      room_building,
+      room_name,
     } = body;
 
     // Validation
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
       !borrower_name ||
       !borrower_id ||
       !borrower_phone ||
-      !asset_id ||
+      (!asset_id && !(room_building && room_name)) ||
       !start_date ||
       !start_time ||
       !end_date ||
@@ -89,6 +91,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isRoomLoan = !asset_id && room_building && room_name;
+
     // Check if asset exists and is not permanently broken
     interface AssetCheck {
       id: string;
@@ -96,17 +100,21 @@ export async function POST(req: NextRequest) {
       condition: string;
       status: string;
     }
-    const { data: asset, error: assetError } = await supabaseAdmin
-      .from('assets')
-      .select('id, name, condition, status')
-      .eq('id', asset_id)
-      .maybeSingle<AssetCheck>();
-    if (assetError) throw assetError;
-    if (!asset) {
-      return NextResponse.json({ error: 'Sarpras / Aset yang dipilih tidak ditemukan' }, { status: 404 });
+    let asset: AssetCheck | null = null;
+    if (!isRoomLoan) {
+      const { data: selectedAsset, error: assetError } = await supabaseAdmin
+        .from('assets')
+        .select('id, name, condition, status')
+        .eq('id', asset_id)
+        .maybeSingle<AssetCheck>();
+      if (assetError) throw assetError;
+      asset = selectedAsset;
+      if (!asset) {
+        return NextResponse.json({ error: 'Sarpras / Aset yang dipilih tidak ditemukan' }, { status: 404 });
+      }
     }
 
-    if (asset.condition === 'RUSAK_BERAT') {
+    if (asset && asset.condition === 'RUSAK_BERAT') {
       return NextResponse.json(
         { error: `Sarpras (${asset.name}) saat ini rusak berat dan tidak dapat dipinjam` },
         { status: 400 }
@@ -132,11 +140,14 @@ export async function POST(req: NextRequest) {
       end_time: string;
     }
 
-    const { data: possibleConflicts, error: conflictError } = await supabaseAdmin
+    let conflictQuery = supabaseAdmin
       .from('loan_requests')
       .select('ticket_code, start_date, start_time, end_date, end_time')
-      .eq('asset_id', asset_id)
       .in('status', ['APPROVED', 'IN_USE', 'PENDING_HEAD']);
+    conflictQuery = isRoomLoan
+      ? conflictQuery.eq('room_building', room_building).eq('room_name', room_name.trim())
+      : conflictQuery.eq('asset_id', asset_id);
+    const { data: possibleConflicts, error: conflictError } = await conflictQuery;
     if (conflictError) throw conflictError;
     const conflict = (possibleConflicts || []).find((row) =>
       `${row.start_date} ${row.start_time}` < endIso && `${row.end_date} ${row.end_time}` > startIso
@@ -173,7 +184,9 @@ export async function POST(req: NextRequest) {
       borrower_role: borrower_role || 'Mahasiswa',
       borrower_phone,
       borrower_email: borrower_email || null,
-      asset_id,
+      asset_id: isRoomLoan ? null : asset_id,
+      room_building: isRoomLoan ? room_building : null,
+      room_name: isRoomLoan ? room_name.trim() : null,
       start_date,
       start_time,
       end_date,
@@ -195,9 +208,9 @@ export async function POST(req: NextRequest) {
     if (createdError) throw createdError;
     const createdLoan = {
       ...createdRow,
-      asset_name: createdRow.assets?.name,
-      asset_code: createdRow.assets?.code,
-      asset_category: createdRow.assets?.category,
+      asset_name: createdRow.assets?.name || `Ruangan ${createdRow.room_name || ''}`.trim(),
+      asset_code: createdRow.assets?.code || `${createdRow.room_building || ''} / ${createdRow.room_name || ''}`.trim(),
+      asset_category: createdRow.assets?.category || 'ROOM',
       assets: undefined,
     };
 

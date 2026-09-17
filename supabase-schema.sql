@@ -37,7 +37,9 @@ create table if not exists loan_requests (
   borrower_role text not null,
   borrower_phone text not null,
   borrower_email text,
-  asset_id text not null references assets(id),
+  asset_id text references assets(id),
+  room_building text,
+  room_name text,
   start_date date not null,
   start_time time not null,
   end_date date not null,
@@ -61,6 +63,10 @@ create table if not exists loan_requests (
   created_at timestamptz not null default now()
 );
 
+alter table loan_requests alter column asset_id drop not null;
+alter table loan_requests add column if not exists room_building text;
+alter table loan_requests add column if not exists room_name text;
+
 create table if not exists maintenance_records (
   id text primary key,
   ticket_number text unique not null,
@@ -83,6 +89,7 @@ create index if not exists idx_assets_category_status on assets(category, status
 create index if not exists idx_assets_building_room on assets(building, room);
 create index if not exists idx_loans_status_created on loan_requests(status, created_at desc);
 create index if not exists idx_loans_asset_dates on loan_requests(asset_id, start_date, end_date);
+create index if not exists idx_loans_room_dates on loan_requests(room_building, room_name, start_date, end_date);
 create index if not exists idx_maintenance_status_date on maintenance_records(status, scheduled_date);
 
 insert into users (id, username, password_hash, name, role)
