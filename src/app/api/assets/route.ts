@@ -6,7 +6,9 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
-    const status = searchParams.get('status');
+    const statusFilter = searchParams.get('status');
+    const building = searchParams.get('building');
+    const room = searchParams.get('room');
     const search = searchParams.get('q');
 
     let query = supabaseAdmin.from('assets').select('*');
@@ -15,15 +17,23 @@ export async function GET(req: NextRequest) {
       query = query.eq('category', category);
     }
 
-    if (status && status !== 'ALL') {
-      query = query.eq('status', status);
+    if (statusFilter && statusFilter !== 'ALL') {
+      query = query.eq('status', statusFilter);
+    }
+
+    if (building && building !== 'ALL') {
+      query = query.eq('building', building);
+    }
+
+    if (room && room !== 'ALL') {
+      query = query.eq('room', room);
     }
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,building.ilike.%${search}%,room.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
     }
 
-    const { data: assets, error } = await query.order('created_at', { ascending: false });
+    const { data: assets, error } = await query.order('name', { ascending: true });
     if (error) throw error;
     return NextResponse.json({ success: true, assets });
   } catch (err: unknown) {
@@ -43,7 +53,26 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { code, name, category, building, room, location, condition, status, specs, capacity, purchase_year } = body;
+    const {
+      code,
+      name,
+      category,
+      building,
+      room,
+      location,
+      condition,
+      status,
+      specs,
+      capacity,
+      purchase_year,
+      purchase_date,
+      purchase_price,
+      depreciation_rate,
+      depreciation_previous,
+      depreciation_current,
+      book_value,
+      funding_source,
+    } = body;
 
     if (!code || !name || !category || !building || !room) {
       return NextResponse.json(
@@ -80,8 +109,15 @@ export async function POST(req: NextRequest) {
       condition: condition || 'BAIK',
       status: status || 'TERSEDIA',
       specs: specs || null,
-      capacity: Number(capacity) || 0,
+      capacity: Number(capacity) || 1,
       purchase_year: Number(purchase_year) || new Date().getFullYear(),
+      purchase_date: purchase_date || null,
+      purchase_price: Number(purchase_price) || 0,
+      depreciation_rate: Number(depreciation_rate) || 10,
+      depreciation_previous: Number(depreciation_previous) || 0,
+      depreciation_current: Number(depreciation_current) || 0,
+      book_value: Number(book_value) || 0,
+      funding_source: funding_source || 'YPTSH',
       created_at: now,
     });
     if (insertError) throw insertError;
@@ -98,4 +134,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Gagal menyimpan data aset' }, { status: 500 });
   }
 }
-

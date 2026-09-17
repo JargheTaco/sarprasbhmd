@@ -1,24 +1,27 @@
-import React from 'react';
-import { 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Car, 
-  RotateCcw, 
-  AlertTriangle, 
-  Wrench, 
-  CheckCircle,
-  HelpCircle
+import {
+    AlertTriangle,
+    Car,
+    CheckCircle,
+    CheckCircle2,
+    Clock,
+    HelpCircle,
+    RotateCcw,
+    Wrench,
+    XCircle
 } from 'lucide-react';
 
 interface StatusBadgeProps {
-  status: string;
+  status?: string;
+  value?: string;
   type?: 'loan' | 'asset' | 'condition' | 'maintenance';
 }
 
-export function StatusBadge({ status, type = 'loan' }: StatusBadgeProps) {
+export function StatusBadge({ status, value, type = 'loan' }: StatusBadgeProps) {
+  const resolvedStatus = (value ?? status) ?? '';
+  const s = resolvedStatus;
+
   if (type === 'loan') {
-    switch (status) {
+    switch (s) {
       case 'PENDING_STAFF':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
@@ -72,7 +75,7 @@ export function StatusBadge({ status, type = 'loan' }: StatusBadgeProps) {
   }
 
   if (type === 'asset') {
-    switch (status) {
+    switch (s) {
       case 'TERSEDIA':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
@@ -104,7 +107,7 @@ export function StatusBadge({ status, type = 'loan' }: StatusBadgeProps) {
   }
 
   if (type === 'condition') {
-    switch (status) {
+    switch (s) {
       case 'BAIK':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -132,7 +135,7 @@ export function StatusBadge({ status, type = 'loan' }: StatusBadgeProps) {
   }
 
   if (type === 'maintenance') {
-    switch (status) {
+    switch (s) {
       case 'SCHEDULED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">

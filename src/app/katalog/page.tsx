@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import {
     Building2,
     Car,
+    ClipboardList,
     Layers,
     MapPin,
     Search,
@@ -69,13 +70,13 @@ export default function KatalogPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
           <span className="text-blue-600 font-bold text-xs uppercase tracking-wider">
-            Daftar Sarana Prasarana
+            Layanan Peminjaman Sarpras
           </span>
           <h1 className="text-3xl font-extrabold text-slate-900 mt-1">
-            Katalog Inventaris Sarpras Kampus
+            Katalog Sarpras yang Dapat Dipinjam
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Jelajahi armada kendaraan dinas, ruang perkuliahan, auditorium, serta fasilitas elektronik dan mesin penunjang akademik.
+            Ajukan peminjaman armada kendaraan dinas, aula, ruang pertemuan, dan alat elektronik portabel kampus — <strong>tanpa perlu login</strong>.
           </p>
         </div>
 
@@ -86,6 +87,18 @@ export default function KatalogPage() {
           <Send className="w-4 h-4" />
           Ajukan Peminjaman
         </Link>
+      </div>
+
+      {/* Banner: link ke inventaris kelas */}
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start gap-2">
+        <ClipboardList className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
+        <span>
+          <strong>Mencari inventaris tetap per ruangan atau kelas?</strong>{' '}
+          <Link href="/inventaris" className="underline font-semibold text-blue-700">
+            Buka Portal Inventaris Kelas & Ruangan (KIR) →
+          </Link>{' '}
+          untuk melihat daftar meja, kursi, AC, proyektor, dan peralatan yang terpasang di setiap ruang kuliah.
+        </span>
       </div>
 
       {/* Search & Category Filter Controls */}

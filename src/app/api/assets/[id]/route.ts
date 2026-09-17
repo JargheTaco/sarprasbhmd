@@ -33,7 +33,25 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const { id } = await params;
     const body = await req.json();
-    const { name, category, building, room, location, condition, status, specs, capacity, purchase_year } = body;
+    const {
+      name,
+      category,
+      building,
+      room,
+      location,
+      condition,
+      status,
+      specs,
+      capacity,
+      purchase_year,
+      purchase_date,
+      purchase_price,
+      depreciation_rate,
+      depreciation_previous,
+      depreciation_current,
+      book_value,
+      funding_source,
+    } = body;
 
     if (!name || !category || !building || !room) {
       return NextResponse.json(
@@ -61,8 +79,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
       condition,
       status,
       specs: specs || null,
-      capacity: Number(capacity) || 0,
+      capacity: Number(capacity) || 1,
       purchase_year: Number(purchase_year) || new Date().getFullYear(),
+      purchase_date: purchase_date || null,
+      purchase_price: Number(purchase_price) || 0,
+      depreciation_rate: Number(depreciation_rate) || 10,
+      depreciation_previous: Number(depreciation_previous) || 0,
+      depreciation_current: Number(depreciation_current) || 0,
+      book_value: Number(book_value) || 0,
+      funding_source: funding_source || 'YPTSH',
     }).eq('id', id);
     if (updateError) throw updateError;
 
