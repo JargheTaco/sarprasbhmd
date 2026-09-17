@@ -41,9 +41,10 @@ function normalize(value: string) {
 
 function numberValue(value?: string) {
   if (!value) return 0;
+  const negative = value.includes('(') && value.includes(')');
   const cleaned = value.replace(/rp\.?/gi, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
   const parsed = Number(cleaned.replace(/[^\d.-]/g, ''));
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? (negative ? -Math.abs(parsed) : parsed) : 0;
 }
 
 function dateValue(value: string) {
@@ -98,16 +99,37 @@ export async function POST(request: NextRequest) {
     const headers = rows[headerRowIndex].map(normalize);
     const nameIndex = findHeaderIndex(headers, 'jenis barang', 'nama barang', 'nama');
     const codeStartIndex = findHeaderIndex(headers, 'no inventaris', 'nomor inventaris');
-    const dateIndex = findHeaderIndex(headers, 'tanggal perolehan', 'tanggal pembelian', 'purchase date');
+    const dateIndex = findHeaderIndex(headers, 'tanggal perolehan', 'tanggal pembelian', 'purchase date', 'tanggal');
+    const priceIndex = findHeaderIndex(headers, 'harga pembelian', 'harga perolehan', 'harga');
+    const depreciationIndex = findHeaderIndex(headers, 'nilai penyusutan', 'nilai penyu', 'penyusutan');
+    const bookValueIndex = findHeaderIndex(headers, 'nilai buku');
+    const locationIndex = findHeaderIndex(headers, 'keberadaan', 'lokasi', 'location');
+    const fundingIndex = findHeaderIndex(headers, 'sumber dana');
+    const conditionIndex = findHeaderIndex(headers, 'keadaan', 'kondisi');
+    const yearIndex = findHeaderIndex(headers, 'th', 'tahun');
     const dataRows = rows.slice(headerRowIndex + 1).map((values) => {
       const row = Object.fromEntries(headers.map((header, index) => [header, values[index] || '']));
-      if (!column(row, 'no inventaris', 'nomor inventaris', 'kode', 'code') && codeStartIndex >= 0) {
+      if (codeStartIndex >= 0) {
         const codeParts = values.slice(codeStartIndex, dateIndex > codeStartIndex ? dateIndex : codeStartIndex + 1).filter(Boolean);
         row[normalize('no inventaris')] = codeParts.join('/');
       }
       if (!column(row, 'jenis barang', 'nama barang', 'nama', 'name') && nameIndex >= 0) {
         row[normalize('jenis barang')] = values[nameIndex] || '';
       }
+      if (dateIndex >= 0) {
+        row[normalize('tanggal perolehan')] = [values[dateIndex], values[dateIndex + 1], values[dateIndex + 2]].filter(Boolean).join(' ');
+      }
+      if (priceIndex >= 0) row[normalize('harga pembelian')] = values[priceIndex] || '';
+      if (depreciationIndex >= 0) {
+        row[normalize('nilai penyusutan 10%')] = values[depreciationIndex] || '';
+        row[normalize('penyusutan th lalu')] = values[depreciationIndex + 1] || '';
+        row[normalize('penyusutan th ini')] = values[depreciationIndex + 2] || '';
+      }
+      if (bookValueIndex >= 0) row[normalize('nilai buku')] = values[bookValueIndex] || '';
+      if (locationIndex >= 0) row[normalize('keberadaan')] = values[locationIndex] || '';
+      if (fundingIndex >= 0) row[normalize('sumber dana')] = values[fundingIndex] || '';
+      if (conditionIndex >= 0) row[normalize('keadaan')] = values[conditionIndex] || '';
+      if (yearIndex >= 0) row[normalize('th')] = values[yearIndex] || '';
       return row;
     });
     const codes = dataRows.map((row) => column(row, 'no inventaris', 'nomor inventaris', 'kode', 'code')).filter(Boolean).map((code) => code.toUpperCase());
@@ -134,11 +156,11 @@ export async function POST(request: NextRequest) {
         id: `ast_import_${Date.now()}_${assets.length}_${Math.random().toString(36).slice(2, 6)}`,
         code,
         name,
-        category: column(row, 'kategori', 'category') || 'GENERAL',
+        category: column(row, 'kategori', 'category') || 'ELECTRONIC',
         building: location,
         room: location,
         location,
-        condition: 'BAIK',
+        condition: column(row, 'keadaan', 'kondisi') || 'BAIK',
         status: 'TERSEDIA',
         specs: column(row, 'spesifikasi', 'keterangan', 'rincian'),
         capacity: 0,
@@ -149,6 +171,7 @@ export async function POST(request: NextRequest) {
         depreciation_previous: numberValue(column(row, 'nilai penyusutan th lalu', 'penyusutan th lalu')),
         depreciation_current: numberValue(column(row, 'nilai penyusutan th ini', 'penyusutan th ini')),
         book_value: numberValue(column(row, 'nilai buku')),
+        funding_source: column(row, 'sumber dana'),
         created_at: new Date().toISOString(),
       });
     }

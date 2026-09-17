@@ -29,6 +29,7 @@ create table if not exists assets (
   depreciation_previous numeric(14, 2) not null default 0,
   depreciation_current numeric(14, 2) not null default 0,
   book_value numeric(14, 2) not null default 0,
+  funding_source text,
   created_at timestamptz not null default now()
 );
 
@@ -40,6 +41,7 @@ alter table assets add column if not exists depreciation_rate numeric(6, 2) not 
 alter table assets add column if not exists depreciation_previous numeric(14, 2) not null default 0;
 alter table assets add column if not exists depreciation_current numeric(14, 2) not null default 0;
 alter table assets add column if not exists book_value numeric(14, 2) not null default 0;
+alter table assets add column if not exists funding_source text;
 
 create table if not exists loan_requests (
   id text primary key,
