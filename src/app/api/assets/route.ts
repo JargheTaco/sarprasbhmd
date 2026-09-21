@@ -134,3 +134,63 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Gagal menyimpan data aset' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Hanya Admin yang dapat menghapus data gedung' },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const building = searchParams.get('building')?.trim();
+    if (!building) {
+      return NextResponse.json({ error: 'Nama gedung wajib diisi' }, { status: 400 });
+    }
+
+    const { data: assets, error: assetsError } = await supabaseAdmin
+      .from('assets')
+      .select('id')
+      .eq('building', building);
+    if (assetsError) throw assetsError;
+    if (!assets?.length) {
+      return NextResponse.json({ error: 'Gedung tidak memiliki aset' }, { status: 404 });
+    }
+
+    const assetIds = assets.map((asset) => asset.id);
+    const [{ data: linkedLoans, error: loansError }, { data: linkedMaintenance, error: maintenanceError }] = await Promise.all([
+      supabaseAdmin.from('loan_requests').select('id').in('asset_id', assetIds).limit(1),
+      supabaseAdmin.from('maintenance_records').select('id').in('asset_id', assetIds).limit(1),
+    ]);
+    if (loansError) throw loansError;
+    if (maintenanceError) throw maintenanceError;
+
+    if (linkedLoans?.length) {
+      return NextResponse.json(
+        { error: 'Gedung tidak dapat dihapus karena memiliki aset dengan riwayat peminjaman.' },
+        { status: 400 }
+      );
+    }
+    if (linkedMaintenance?.length) {
+      return NextResponse.json(
+        { error: 'Gedung tidak dapat dihapus karena memiliki aset dengan riwayat perawatan.' },
+        { status: 400 }
+      );
+    }
+
+    const { error: deleteError } = await supabaseAdmin.from('assets').delete().eq('building', building);
+    if (deleteError) throw deleteError;
+
+    return NextResponse.json({
+      success: true,
+      message: `Gedung ${building} dan ${assets.length} aset berhasil dihapus`,
+      deletedCount: assets.length,
+    });
+  } catch (err: unknown) {
+    console.error('Delete building assets error:', err);
+    return NextResponse.json({ error: 'Gagal menghapus gedung dan asetnya' }, { status: 500 });
+  }
+}

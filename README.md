@@ -1,45 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SIM-SARPRAS Universitas Bhamada Slawi
 
-## Getting Started
+SIM-SARPRAS adalah sistem informasi pengelolaan sarana dan prasarana Universitas Bhamada Slawi. Web ini digunakan untuk mengajukan, memverifikasi, menyetujui, melacak, dan mengelola peminjaman aset kampus secara terpusat.
 
-First, run the development server:
+## Dibuat Dengan Apa?
+
+- **Bahasa pemrograman:** TypeScript
+- **Framework utama:** Next.js 16 dengan App Router
+- **Antarmuka:** React 19 dan Tailwind CSS 4
+- **Ikon:** Lucide React
+- **Database:** Supabase PostgreSQL
+- **API:** Next.js Route Handlers pada folder `src/app/api`
+- **Autentikasi:** Session berbasis cookie dengan role `ADMIN`, `STAFF_SARPRAS`, dan `KEPALA_SARPRAS`
+- **Linting:** ESLint 9 dengan konfigurasi Next.js
+
+## Yang Bisa Dilakukan
+
+### Untuk pemohon dan publik
+
+- Melihat katalog sarana prasarana seperti mobil kampus, ruang kelas, aula, auditorium, alat elektronik, dan fasilitas lain.
+- Mengajukan peminjaman tanpa membuat akun atau login.
+- Memilih aset, tanggal dan waktu penggunaan, tujuan, lokasi, serta kebutuhan pengemudi.
+- Mengajukan peminjaman ruang dengan memilih gedung dan nama atau nomor ruangan.
+- Mendapatkan kode tiket unik setelah pengajuan berhasil dikirim.
+- Melacak status permohonan melalui kode tiket.
+- Melihat detail tahapan verifikasi Staff Sarpras, persetujuan Kepala Sarpras, serah terima, penggunaan, dan pengembalian.
+- Mengakses surat izin resmi untuk pengajuan yang sudah disetujui.
+- Melihat jadwal pemakaian aktif dan memeriksa ketersediaan sarpras sebelum mengajukan peminjaman.
+- Menelusuri inventaris ruangan dan kelas berdasarkan gedung, ruangan, nama barang, kode, atau spesifikasi.
+- Menampilkan Kartu Inventaris Ruangan (KIR) untuk ruangan tertentu.
+
+### Untuk petugas Sarpras
+
+Petugas login melalui `/login` untuk membuka dashboard manajemen. Fitur yang tersedia menyesuaikan role pengguna:
+
+- Melihat ringkasan statistik aset, peminjaman, dan perawatan.
+- Memproses antrean pengajuan peminjaman.
+- Melakukan verifikasi Staff melalui checklist ketersediaan dan kondisi fisik sarpras.
+- Memberikan persetujuan akhir sebagai Kepala Sarpras melalui checklist.
+- Mencatat serah terima, penggunaan aset, dan pengembalian.
+- Mengelola data inventaris aset dan informasi kondisi aset.
+- Membuat serta memantau tiket perawatan aset elektronik, mesin, dan kelistrikan.
+- Mengelola akun pengguna jika login sebagai Administrator.
+
+## Alur Peminjaman
+
+1. Pemohon mengisi formulir peminjaman dan menerima kode tiket.
+2. Staff Sarpras memeriksa ketersediaan serta kondisi sarpras.
+3. Kepala Sarpras memberikan persetujuan atau penolakan.
+4. Pengajuan yang disetujui dapat diproses untuk serah terima dan penggunaan.
+5. Setelah selesai digunakan, petugas mencatat pengembalian dan checklist kondisi akhir.
+
+Status yang digunakan antara lain `PENDING_STAFF`, `PENDING_HEAD`, `APPROVED`, `IN_USE`, `RETURNED`, dan `REJECTED`.
+
+## Menjalankan Project
+
+Pastikan Node.js dan npm sudah terpasang, lalu jalankan:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Perintah lain yang tersedia:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+npm run start
+```
 
-## Learn More
+## Konfigurasi Database
 
-To learn more about Next.js, take a look at the following resources:
+Project ini menggunakan Supabase PostgreSQL. Jalankan isi [supabase-schema.sql](supabase-schema.sql) melalui Supabase SQL Editor sebelum menggunakan API atau melakukan deployment.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Supabase and Vercel
-
-The production API uses Supabase PostgreSQL. Run `supabase-schema.sql` in the Supabase SQL Editor before deploying.
-
-Add these environment variables in Vercel:
+Buat file `.env.local` dengan variabel berikut:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -47,4 +83,15 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 AUTH_SECRET=replace-with-a-long-random-secret
 ```
 
-Keep `SUPABASE_SERVICE_ROLE_KEY` server-side. Do not add the `NEXT_PUBLIC_` prefix to it.
+`SUPABASE_SERVICE_ROLE_KEY` hanya boleh digunakan di sisi server. Jangan menambahkan prefix `NEXT_PUBLIC_` pada variabel tersebut.
+
+## Struktur Utama
+
+```text
+src/app/              Halaman publik, dashboard, dan API route
+src/components/       Komponen UI yang digunakan bersama
+src/lib/               Koneksi database, Supabase, dan autentikasi
+data/                  Data mentah inventaris
+scripts/               Script untuk seed data inventaris
+supabase-schema.sql    Struktur tabel PostgreSQL
+```

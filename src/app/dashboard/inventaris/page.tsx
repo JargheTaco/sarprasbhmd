@@ -238,6 +238,23 @@ export default function InventarisPage() {
     }
   };
 
+  const handleDeleteBuilding = async (building: string, assetCount: number) => {
+    if (!confirm(`Hapus gedung "${building}" beserta ${assetCount} aset di dalamnya?\nTindakan ini tidak dapat dibatalkan.`)) return;
+    try {
+      const res = await fetch(`/api/assets?building=${encodeURIComponent(building)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menghapus gedung');
+      setExpandedBuildings(prev => {
+        const next = new Set(prev);
+        next.delete(building);
+        return next;
+      });
+      await fetchAssets();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus gedung');
+    }
+  };
+
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -422,24 +439,33 @@ export default function InventarisPage() {
             return (
               <div key={building} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
                 {/* Building header */}
-                <button
-                  onClick={() => toggleBuilding(building)}
-                  className="w-full flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-50 to-slate-50 hover:from-blue-100 hover:to-blue-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-blue-50 to-slate-50">
+                  <button
+                    onClick={() => toggleBuilding(building)}
+                    className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+                  >
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                       <Building2 className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-left">
+                    <div>
                       <p className="text-sm font-bold text-slate-900">{building}</p>
                       <p className="text-[10px] text-slate-500">{rooms.length} ruang • {buildingTotal} item</p>
                     </div>
-                  </div>
-                  {isOpen
-                    ? <ChevronDown className="w-5 h-5 text-slate-400" />
-                    : <ChevronRight className="w-5 h-5 text-slate-400" />
-                  }
-                </button>
+                    {isOpen
+                      ? <ChevronDown className="w-5 h-5 text-slate-400" />
+                      : <ChevronRight className="w-5 h-5 text-slate-400" />
+                    }
+                  </button>
+                  {currentUser?.role === 'ADMIN' && (
+                    <button
+                      onClick={() => handleDeleteBuilding(building, buildingTotal)}
+                      title="Hapus gedung beserta seluruh aset"
+                      className="p-2 rounded-lg text-rose-500 hover:bg-rose-100 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
 
                 {isOpen && (
                   <div className="divide-y divide-slate-100">
