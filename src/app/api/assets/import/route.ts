@@ -42,8 +42,8 @@ function normalize(value: string) {
 function numberValue(value?: string) {
   if (!value) return 0;
   const negative = value.includes('(') && value.includes(')');
-  const cleaned = value.replace(/rp\.?/gi, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-  const parsed = Number(cleaned.replace(/[^\d.-]/g, ''));
+  const cleaned = value.replace(/rp\.?/gi, '').replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '');
+  const parsed = Number(cleaned.replace(/[^\d-]/g, ''));
   return Number.isFinite(parsed) ? (negative ? -Math.abs(parsed) : parsed) : 0;
 }
 
@@ -68,6 +68,27 @@ function column(row: Record<string, string>, ...names: string[]) {
 
 function findHeaderIndex(headers: string[], ...names: string[]) {
   return headers.findIndex((header) => names.some((name) => header.includes(normalize(name))));
+}
+
+function databaseErrorMessage(error: { code?: string; message?: string; details?: string }) {
+  if (error.code === '23505') {
+    return 'Ada kode inventaris yang sudah terdaftar. Data yang sama dilewati, tetapi periksa kembali kode pada CSV.';
+  }
+  if (error.code === '42703' || error.code === 'PGRST204') {
+    return 'Kolom inventaris terbaru belum tersedia di Supabase. Jalankan supabase-schema.sql terlebih dahulu.';
+  }
+  if (error.code === '22P02' || error.code === '22007') {
+    return 'Format angka atau tanggal pada CSV tidak valid. Periksa kolom tanggal dan harga perolehan.';
+  }
+  return error.message || error.details || 'Supabase menolak data inventaris.';
+}
+
+function chunks<T>(items: T[], size: number) {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
 }
 
 export async function POST(request: NextRequest) {
@@ -139,8 +160,14 @@ export async function POST(request: NextRequest) {
       return row;
     });
     const codes = dataRows.map((row) => column(row, 'no inventaris', 'nomor inventaris', 'kode', 'code')).filter(Boolean).map((code) => code.toUpperCase());
-    const { data: existingAssets, error: existingError } = await supabaseAdmin.from('assets').select('code').in('code', codes);
-    if (existingError) throw existingError;
+    const existingAssets: { code: string }[] = [];
+    for (const codeBatch of chunks(codes, 250)) {
+      const { data, error } = await supabaseAdmin.from('assets').select('code').in('code', codeBatch);
+      if (error) {
+        return NextResponse.json({ error: `Gagal memeriksa kode inventaris: ${databaseErrorMessage(error)}` }, { status: 400 });
+      }
+      existingAssets.push(...(data || []));
+    }
     const existingCodes = new Set((existingAssets || []).map((asset) => asset.code));
     const seenCodes = new Set<string>();
     const assets = [];
@@ -184,20 +211,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let imported = 0;
     if (assets.length) {
-      const { error: insertError } = await supabaseAdmin.from('assets').insert(assets);
-      if (insertError) {
-        console.error('Import assets database error:', insertError);
-        if (insertError.code === '42703' || insertError.code === 'PGRST204') {
+      for (const batch of chunks(assets, 250)) {
+        const { error: insertError } = await supabaseAdmin.from('assets').insert(batch);
+        if (insertError) {
+          console.error('Import assets database error:', insertError);
           return NextResponse.json({
-            error: 'Kolom inventaris terbaru belum tersedia di Supabase. Jalankan SQL migrasi assets terlebih dahulu, lalu coba impor ulang.',
+            error: `Gagal menyimpan batch data inventaris: ${databaseErrorMessage(insertError)}`,
+            imported,
           }, { status: 400 });
         }
-        throw insertError;
+        imported += batch.length;
       }
     }
 
-    return NextResponse.json({ success: true, imported: assets.length, skipped: skipped.length, skippedCodes: skipped.slice(0, 20) });
+    return NextResponse.json({ success: true, imported, skipped: skipped.length, skippedCodes: skipped.slice(0, 20) });
   } catch (error) {
     console.error('Import assets error:', error);
     const message = error instanceof Error ? error.message : 'Gagal mengimpor data inventaris';
