@@ -24,6 +24,8 @@ interface LoanData {
   staff_verified_by?: string;
   head_approved_at?: string;
   head_approved_by?: string;
+  admin_umum_approved_at?: string;
+  admin_umum_approved_by?: string;
   staff_notes?: string;
   head_notes?: string;
 }
@@ -114,7 +116,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
           {/* Letter Body */}
           <div className="space-y-4 text-xs sm:text-sm">
             <p>
-              Berdasarkan hasil verifikasi administrasi & teknis Staff Sarpras serta persetujuan Kepala Bagian Sarana dan Prasarana Kampus, dengan ini menerbitkan izin penggunaan sarana prasarana kepada:
+              Berdasarkan hasil verifikasi administrasi & teknis Staff Sarpras serta persetujuan Kepala Bagian Sarana dan Prasarana dan Kepala Administrasi Umum Kampus, dengan ini menerbitkan izin penggunaan sarana prasarana kepada:
             </p>
 
             {/* Borrower Details Table */}
@@ -175,7 +177,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
           </div>
 
           {/* Verification & Signatures Section */}
-          <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 items-end font-sans">
+          <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end font-sans">
             {/* Verifikator Staff */}
             <div className="text-center text-xs space-y-1">
               <p className="text-slate-500 text-[11px]">Telah Diverifikasi Oleh:</p>
@@ -195,7 +197,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
             </div>
 
             {/* Approver Head of Sarpras */}
-            <div className="text-center text-xs space-y-1 col-span-2 sm:col-span-1">
+            <div className="text-center text-xs space-y-1">
               <p className="text-slate-500 text-[11px]">Mengetahui & Menyetujui:</p>
               <p className="font-semibold text-slate-800">Kepala Bagian Sarpras</p>
               <div className="py-2 flex items-center justify-center">
@@ -209,6 +211,24 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
               </p>
               <p className="text-[10px] text-slate-500 font-mono">
                 NIP. 197408122002121001
+              </p>
+            </div>
+
+            {/* Approver Head of General Administration */}
+            <div className="text-center text-xs space-y-1">
+              <p className="text-slate-500 text-[11px]">Menyetujui Administrasi:</p>
+              <p className="font-semibold text-slate-800">Kepala Administrasi Umum</p>
+              <div className="py-2 flex items-center justify-center">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-800 bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  ADMINISTRATIVELY APPROVED
+                </span>
+              </div>
+              <p className="font-bold text-slate-900 underline underline-offset-2">
+                {loan.admin_umum_approved_by || 'Kepala Administrasi Umum'}
+              </p>
+              <p className="text-[10px] text-slate-500 font-mono">
+                {formatDateIndo(loan.admin_umum_approved_at)}
               </p>
             </div>
           </div>

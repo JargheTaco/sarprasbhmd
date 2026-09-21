@@ -6,7 +6,7 @@ create table if not exists users (
   username text unique not null,
   password_hash text not null,
   name text not null,
-  role text not null check (role in ('ADMIN', 'STAFF_SARPRAS', 'KEPALA_SARPRAS')),
+  role text not null check (role in ('ADMIN', 'STAFF_SARPRAS', 'KEPALA_SARPRAS', 'KEPALA_ADMIN_UMUM')),
   created_at timestamptz not null default now()
 );
 
@@ -43,6 +43,9 @@ alter table assets add column if not exists depreciation_current numeric(14, 2) 
 alter table assets add column if not exists book_value numeric(14, 2) not null default 0;
 alter table assets add column if not exists funding_source text;
 
+alter table users drop constraint if exists users_role_check;
+alter table users add constraint users_role_check check (role in ('ADMIN', 'STAFF_SARPRAS', 'KEPALA_SARPRAS', 'KEPALA_ADMIN_UMUM'));
+
 create table if not exists loan_requests (
   id text primary key,
   ticket_code text unique not null,
@@ -72,6 +75,10 @@ create table if not exists loan_requests (
   staff_verified_by text,
   head_approved_at timestamptz,
   head_approved_by text,
+  admin_umum_notes text,
+  admin_umum_checklist jsonb,
+  admin_umum_approved_at timestamptz,
+  admin_umum_approved_by text,
   picked_up_at timestamptz,
   returned_at timestamptz,
   created_at timestamptz not null default now()
@@ -80,6 +87,10 @@ create table if not exists loan_requests (
 alter table loan_requests alter column asset_id drop not null;
 alter table loan_requests add column if not exists room_building text;
 alter table loan_requests add column if not exists room_name text;
+alter table loan_requests add column if not exists admin_umum_notes text;
+alter table loan_requests add column if not exists admin_umum_checklist jsonb;
+alter table loan_requests add column if not exists admin_umum_approved_at timestamptz;
+alter table loan_requests add column if not exists admin_umum_approved_by text;
 
 create table if not exists maintenance_records (
   id text primary key,

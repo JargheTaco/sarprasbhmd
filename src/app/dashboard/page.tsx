@@ -1,22 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { 
-  FileCheck2, 
-  Clock, 
-  Car, 
-  Wrench, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertCircle, 
-  ShieldCheck, 
-  Package, 
-  ChevronRight,
-  TrendingUp,
-  UserCheck
-} from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
+import {
+    ArrowRight,
+    Car,
+    Clock,
+    FileCheck2,
+    ShieldCheck,
+    Wrench
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface StatsResponse {
   assets: {
@@ -29,6 +23,7 @@ interface StatsResponse {
   loans: {
     pending_staff: number;
     pending_head: number;
+    pending_admin_umum: number;
     approved: number;
     in_use: number;
     returned: number;
@@ -89,6 +84,7 @@ export default function DashboardPage() {
 
   const isStaff = user?.role === 'STAFF_SARPRAS' || user?.role === 'ADMIN';
   const isHead = user?.role === 'KEPALA_SARPRAS' || user?.role === 'ADMIN';
+  const isAdminUmum = user?.role === 'KEPALA_ADMIN_UMUM' || user?.role === 'ADMIN';
 
   return (
     <div className="space-y-8">
@@ -97,7 +93,7 @@ export default function DashboardPage() {
         <div className="space-y-2 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-400/20">
-              {user?.role === 'KEPALA_SARPRAS' ? 'Persetujuan Tingkat Kepala' : 'Verifikasi Tingkat Staff'}
+              {user?.role === 'KEPALA_SARPRAS' ? 'Persetujuan Tingkat Kepala Sarpras' : user?.role === 'KEPALA_ADMIN_UMUM' ? 'Persetujuan Administrasi Umum' : 'Verifikasi Tingkat Staff'}
             </span>
             <span className="text-xs text-slate-300">• SIM-SARPRAS Terpadu</span>
           </div>
@@ -107,6 +103,8 @@ export default function DashboardPage() {
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             {user?.role === 'KEPALA_SARPRAS'
               ? `Terdapat ${stats?.loans.pending_head || 0} pengajuan peminjaman yang telah diverifikasi oleh Staff Sarpras dan menunggu persetujuan akhir Anda.`
+              : user?.role === 'KEPALA_ADMIN_UMUM'
+              ? `Terdapat ${stats?.loans.pending_admin_umum || 0} pengajuan peminjaman yang telah disetujui Kepala Sarpras dan menunggu persetujuan administrasi Anda.`
               : `Terdapat ${stats?.loans.pending_staff || 0} permohonan baru dari civitas kampus yang menunggu pemeriksaan kelayakan dan checklist Staff.`}
           </p>
         </div>
@@ -139,6 +137,25 @@ export default function DashboardPage() {
           </div>
           <p className="text-3xl font-black text-slate-900">{stats?.loans.pending_staff || 0}</p>
           <p className="text-xs text-slate-500 mt-1">Checklist ketersediaan fisik</p>
+        </Link>
+
+        {/* Metric 2b: Pending Kepala Administrasi Umum */}
+        <Link
+          href="/dashboard/peminjaman?tab=admin-umum"
+          className={`p-5 rounded-2xl border transition-all ${
+            (stats?.loans.pending_admin_umum || 0) > 0
+              ? 'bg-cyan-50/50 border-cyan-200 hover:border-cyan-300'
+              : 'bg-white border-slate-200'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="text-xs font-semibold text-slate-500">3. Persetujuan Administrasi Umum</span>
+            <div className="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold text-xs">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{stats?.loans.pending_admin_umum || 0}</p>
+          <p className="text-xs text-slate-500 mt-1">Menunggu persetujuan administrasi</p>
         </Link>
 
         {/* Metric 2: Pending Head */}

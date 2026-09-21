@@ -46,6 +46,8 @@ interface LoanDetail {
   staff_verified_by?: string;
   head_approved_at?: string;
   head_approved_by?: string;
+    admin_umum_approved_at?: string;
+    admin_umum_approved_by?: string;
   picked_up_at?: string;
   returned_at?: string;
   created_at: string;
@@ -108,6 +110,7 @@ function TrackingContent() {
       if (stepIndex === 1) return 'completed';
       if (stepIndex === 2 && !loan.staff_verified_at) return 'rejected';
       if (stepIndex === 3 && loan.staff_verified_at && !loan.head_approved_at) return 'rejected';
+        if (stepIndex === 4 && loan.head_approved_at && !loan.admin_umum_approved_at) return 'rejected';
       return 'inactive';
     }
 
@@ -117,27 +120,34 @@ function TrackingContent() {
     // Step 2: Verifikasi Staff
     if (stepIndex === 2) {
       if (loan.status === 'PENDING_STAFF') return 'current';
-      if (['PENDING_HEAD', 'APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
+      if (['PENDING_HEAD', 'PENDING_ADMIN_UMUM', 'APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
       return 'inactive';
     }
 
     // Step 3: Persetujuan Kepala
     if (stepIndex === 3) {
       if (loan.status === 'PENDING_HEAD') return 'current';
+      if (['PENDING_ADMIN_UMUM', 'APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
+      return 'inactive';
+    }
+
+    // Step 4: Persetujuan Kepala Administrasi Umum
+    if (stepIndex === 4) {
+      if (loan.status === 'PENDING_ADMIN_UMUM') return 'current';
       if (['APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
       return 'inactive';
     }
 
-    // Step 4: Serah Terima / Penggunaan
-    if (stepIndex === 4) {
+    // Step 5: Serah Terima / Penggunaan
+    if (stepIndex === 5) {
       if (loan.status === 'APPROVED') return 'ready';
       if (loan.status === 'IN_USE') return 'current';
       if (loan.status === 'RETURNED') return 'completed';
       return 'inactive';
     }
 
-    // Step 5: Pengembalian
-    if (stepIndex === 5) {
+    // Step 6: Pengembalian
+    if (stepIndex === 6) {
       if (loan.status === 'RETURNED') return 'completed';
       return 'inactive';
     }
@@ -157,7 +167,7 @@ function TrackingContent() {
             Lacak Status Permohonan Peminjaman
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-            Ketikkan nomor tiket peminjaman (contoh: <code className="text-sky-300 font-mono">SARPRAS-2026-0001</code>) untuk memantau status verifikasi Staff dan persetujuan Kepala Sarpras.
+            Ketikkan nomor tiket peminjaman (contoh: <code className="text-sky-300 font-mono">SARPRAS-2026-0001</code>) untuk memantau status verifikasi dan seluruh persetujuan peminjaman.
           </p>
 
           <form onSubmit={handleSearchSubmit} className="mt-6 flex flex-col sm:flex-row gap-2">
@@ -269,7 +279,7 @@ function TrackingContent() {
               Progres Persetujuan Bertingkat
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-6 gap-4 relative">
               {/* Step 1: Diajukan */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2">
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white mx-auto flex items-center justify-center font-bold text-xs">
@@ -333,12 +343,12 @@ function TrackingContent() {
                 </p>
               </div>
 
-              {/* Step 4: Serah Terima */}
+              {/* Step 4: Persetujuan Administrasi Umum */}
               <div className={`p-4 rounded-2xl border text-center space-y-2 ${
                 getStepStatus(4) === 'completed'
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                   : getStepStatus(4) === 'current'
-                  ? 'bg-blue-50 border-blue-300 text-blue-900 ring-2 ring-blue-400'
+                  ? 'bg-cyan-50 border-cyan-300 text-cyan-900 ring-2 ring-cyan-400'
                   : getStepStatus(4) === 'ready'
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                   : 'bg-slate-50 border-slate-200 text-slate-400'
@@ -347,29 +357,48 @@ function TrackingContent() {
                   getStepStatus(4) === 'completed' || getStepStatus(4) === 'ready'
                     ? 'bg-emerald-600 text-white'
                     : getStepStatus(4) === 'current'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-cyan-600 text-white'
                     : 'bg-slate-300 text-white'
                 }`}>
                   {getStepStatus(4) === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : '4'}
                 </div>
-                <h4 className="font-bold text-xs">4. Serah Terima</h4>
+                <h4 className="font-bold text-xs">4. Administrasi Umum</h4>
                 <p className="text-[11px]">
-                  {loan.status === 'APPROVED' ? 'Siap Diambil' : loan.status === 'IN_USE' ? 'Sedang Digunakan' : getStepStatus(4) === 'completed' ? 'Telah Diambil' : 'Menunggu'}
+                  {loan.status === 'PENDING_ADMIN_UMUM' ? 'Menunggu Kepala Administrasi Umum' : getStepStatus(4) === 'completed' ? 'Disetujui' : 'Menunggu'}
                 </p>
               </div>
 
-              {/* Step 5: Pengembalian */}
+              {/* Step 5: Serah Terima */}
               <div className={`p-4 rounded-2xl border text-center space-y-2 ${
                 getStepStatus(5) === 'completed'
                   ? 'bg-slate-100 border-slate-300 text-slate-900'
+                  : getStepStatus(5) === 'ready' || getStepStatus(5) === 'current'
+                  ? 'bg-blue-50 border-blue-300 text-blue-900'
                   : 'bg-slate-50 border-slate-200 text-slate-400'
               }`}>
                 <div className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center font-bold text-xs ${
-                  getStepStatus(5) === 'completed' ? 'bg-slate-800 text-white' : 'bg-slate-300 text-white'
+                  getStepStatus(5) === 'completed'
+                    ? 'bg-slate-800 text-white'
+                    : getStepStatus(5) === 'ready' || getStepStatus(5) === 'current'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-300 text-white'
                 }`}>
                   {getStepStatus(5) === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : '5'}
                 </div>
-                <h4 className="font-bold text-xs">5. Selesai</h4>
+                <h4 className="font-bold text-xs">5. Serah Terima</h4>
+                <p className="text-[11px]">
+                  {loan.status === 'APPROVED' ? 'Siap Diambil' : loan.status === 'IN_USE' ? 'Sedang Digunakan' : 'Menunggu'}
+                </p>
+              </div>
+
+              {/* Step 6: Pengembalian */}
+              <div className={`p-4 rounded-2xl border text-center space-y-2 ${
+                getStepStatus(6) === 'completed' ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-400'
+              }`}>
+                <div className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center font-bold text-xs ${getStepStatus(6) === 'completed' ? 'bg-slate-800 text-white' : 'bg-slate-300 text-white'}`}>
+                  {getStepStatus(6) === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : '6'}
+                </div>
+                <h4 className="font-bold text-xs">6. Selesai</h4>
                 <p className="text-[11px]">
                   {loan.status === 'RETURNED' ? 'Telah Dikembalikan' : 'Menunggu'}
                 </p>

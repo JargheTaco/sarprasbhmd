@@ -2,8 +2,8 @@ import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
-type UserRole = 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
-const validRoles: UserRole[] = ['ADMIN', 'STAFF_SARPRAS', 'KEPALA_SARPRAS'];
+type UserRole = 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS' | 'KEPALA_ADMIN_UMUM';
+const validRoles: UserRole[] = ['ADMIN', 'STAFF_SARPRAS', 'KEPALA_SARPRAS', 'KEPALA_ADMIN_UMUM'];
 
 async function getAdmin() {
   const user = await getCurrentUser();

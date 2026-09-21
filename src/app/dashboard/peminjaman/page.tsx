@@ -3,20 +3,20 @@
 import { OfficialLetterModal } from '@/components/OfficialLetterModal';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
-    AlertCircle,
-    Calendar,
-    Car,
-    CheckCircle2,
-    CheckSquare,
-    Clock,
-    Layers,
-    Phone,
-    Printer,
-    RotateCcw,
-    Search,
-    ShieldCheck,
-    User,
-    XCircle
+  AlertCircle,
+  Calendar,
+  Car,
+  CheckCircle2,
+  CheckSquare,
+  Clock,
+  Layers,
+  Phone,
+  Printer,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  User,
+  XCircle
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -61,7 +61,7 @@ interface AuthUser {
   id: string;
   username: string;
   name: string;
-  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
+  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS' | 'KEPALA_ADMIN_UMUM';
 }
 
 function PeminjamanContent() {
@@ -78,6 +78,7 @@ function PeminjamanContent() {
   const [selectedLoan, setSelectedLoan] = useState<LoanItem | null>(null);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [headModalOpen, setHeadModalOpen] = useState(false);
+  const [adminUmumModalOpen, setAdminUmumModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [letterModalOpen, setLetterModalOpen] = useState(false);
@@ -95,6 +96,11 @@ function PeminjamanContent() {
   const [headCheck, setHeadCheck] = useState({
     priority_approved: true,
     schedule_approved: true,
+    notes: '',
+  });
+
+  const [adminUmumCheck, setAdminUmumCheck] = useState({
+    administration_approved: true,
     notes: '',
   });
 
@@ -147,6 +153,7 @@ function PeminjamanContent() {
 
     if (activeTab === 'staff') return l.status === 'PENDING_STAFF';
     if (activeTab === 'head') return l.status === 'PENDING_HEAD';
+    if (activeTab === 'admin-umum') return l.status === 'PENDING_ADMIN_UMUM';
     if (activeTab === 'active') return l.status === 'APPROVED' || l.status === 'IN_USE';
     if (activeTab === 'archive') return l.status === 'RETURNED' || l.status === 'REJECTED';
     return true;
@@ -181,6 +188,34 @@ function PeminjamanContent() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem';
       setActionError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAdminUmumSubmit = async (action: 'APPROVE' | 'REJECT') => {
+    if (!selectedLoan) return;
+    setSubmitting(true);
+    setActionError(null);
+
+    try {
+      const res = await fetch(`/api/loans/${selectedLoan.ticket_code}/admin-approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          notes: adminUmumCheck.notes,
+          administration_approved: adminUmumCheck.administration_approved,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memproses persetujuan Administrasi Umum');
+
+      setAdminUmumModalOpen(false);
+      setSelectedLoan(null);
+      await fetchData();
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem');
     } finally {
       setSubmitting(false);
     }
@@ -273,6 +308,7 @@ function PeminjamanContent() {
   // Count metrics
   const countStaff = loans.filter((l) => l.status === 'PENDING_STAFF').length;
   const countHead = loans.filter((l) => l.status === 'PENDING_HEAD').length;
+  const countAdminUmum = loans.filter((l) => l.status === 'PENDING_ADMIN_UMUM').length;
   const countActive = loans.filter((l) => l.status === 'APPROVED' || l.status === 'IN_USE').length;
   const countArchive = loans.filter((l) => l.status === 'RETURNED' || l.status === 'REJECTED').length;
 
@@ -350,6 +386,23 @@ function PeminjamanContent() {
           {countActive > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'active' ? 'bg-blue-800 text-blue-100' : 'bg-blue-100 text-blue-800'}`}>
               {countActive}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('admin-umum')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'admin-umum'
+              ? 'bg-cyan-600 text-white shadow-sm'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>3. Persetujuan Administrasi Umum</span>
+          {countAdminUmum > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'admin-umum' ? 'bg-cyan-800 text-cyan-100' : 'bg-cyan-100 text-cyan-800'}`}>
+              {countAdminUmum}
             </span>
           )}
         </button>
@@ -469,6 +522,20 @@ function PeminjamanContent() {
                   </button>
                 )}
 
+                {loan.status === 'PENDING_ADMIN_UMUM' && (
+                  <button
+                    onClick={() => {
+                      setSelectedLoan(loan);
+                      setAdminUmumModalOpen(true);
+                      setActionError(null);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Persetujuan Administrasi</span>
+                  </button>
+                )}
+
                 {/* Approved status: Dispatch / Handover */}
                 {loan.status === 'APPROVED' && (
                   <>
@@ -523,6 +590,89 @@ function PeminjamanContent() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* MODAL: Persetujuan Kepala Administrasi Umum */}
+      {adminUmumModalOpen && selectedLoan && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-cyan-700 uppercase tracking-wider">
+                  Persetujuan Tahap 3
+                </span>
+                <h3 className="text-lg font-bold text-slate-900">Persetujuan Administrasi Umum</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdminUmumModalOpen(false)}
+                disabled={submitting}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold disabled:opacity-50"
+              >
+                Tutup
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            <div className="bg-cyan-50 p-4 rounded-2xl border border-cyan-100 text-xs space-y-1.5">
+              <p className="font-mono font-bold text-cyan-900">{selectedLoan.ticket_code}</p>
+              <p className="font-bold text-slate-900">{selectedLoan.asset_name} ({selectedLoan.asset_code})</p>
+              <p className="text-slate-600">Pemohon: {selectedLoan.borrower_name} ({selectedLoan.borrower_role})</p>
+              <p className="text-slate-600">Agenda: {selectedLoan.purpose}</p>
+              <p className="text-slate-600">Telah disetujui oleh: {selectedLoan.head_approved_by || 'Kepala Sarpras'}</p>
+            </div>
+
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={adminUmumCheck.administration_approved}
+                onChange={(e) => setAdminUmumCheck({ ...adminUmumCheck, administration_approved: e.target.checked })}
+                className="w-4 h-4 text-cyan-600 rounded mt-0.5"
+              />
+              <span className="text-xs text-slate-800 font-medium">
+                Administrasi peminjaman, tujuan kegiatan, dan dokumen pendukung telah diperiksa dan dapat disetujui.
+              </span>
+            </label>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Catatan Administrasi Umum</label>
+              <textarea
+                rows={2}
+                placeholder="Tuliskan catatan atau arahan administrasi..."
+                value={adminUmumCheck.notes}
+                onChange={(e) => setAdminUmumCheck({ ...adminUmumCheck, notes: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleAdminUmumSubmit('APPROVE')}
+                className="flex-1 py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Setujui & Siapkan Serah Terima
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleAdminUmumSubmit('REJECT')}
+                className="py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <XCircle className="w-4 h-4" />
+                Tolak
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

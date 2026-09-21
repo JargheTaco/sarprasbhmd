@@ -36,6 +36,13 @@ export function StatusBadge({ status, value, type = 'loan' }: StatusBadgeProps) 
             Menunggu Persetujuan Kepala
           </span>
         );
+      case 'PENDING_ADMIN_UMUM':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200">
+            <Clock className="w-3.5 h-3.5 animate-pulse" />
+            Menunggu Kepala Administrasi Umum
+          </span>
+        );
       case 'APPROVED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">

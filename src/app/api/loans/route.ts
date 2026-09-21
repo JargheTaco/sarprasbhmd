@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
     let conflictQuery = supabaseAdmin
       .from('loan_requests')
       .select('ticket_code, start_date, start_time, end_date, end_time')
-      .in('status', ['APPROVED', 'IN_USE', 'PENDING_HEAD']);
+      .in('status', ['APPROVED', 'IN_USE', 'PENDING_HEAD', 'PENDING_ADMIN_UMUM']);
     conflictQuery = isRoomLoan
       ? conflictQuery.eq('room_building', room_building).eq('room_name', room_name.trim())
       : conflictQuery.eq('asset_id', asset_id);

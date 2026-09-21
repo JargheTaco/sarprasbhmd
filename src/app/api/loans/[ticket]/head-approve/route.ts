@@ -52,11 +52,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
     const now = new Date().toISOString();
-    const newStatus = action === 'REJECT' ? 'REJECTED' : 'APPROVED';
+    const newStatus = action === 'REJECT' ? 'REJECTED' : 'PENDING_ADMIN_UMUM';
 
     const { error: updateError } = await supabaseAdmin.from('loan_requests').update({
       status: newStatus,
-      head_notes: notes || (action === 'REJECT' ? 'Ditolak oleh Kepala Sarpras' : 'Disetujui oleh Kepala Sarpras'),
+      head_notes: notes || (action === 'REJECT' ? 'Ditolak oleh Kepala Sarpras' : 'Disetujui oleh Kepala Sarpras, menunggu Kepala Administrasi Umum'),
       head_checklist: JSON.parse(checklistJson),
       head_approved_at: now,
       head_approved_by: user.name,
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       success: true,
       message: action === 'REJECT' 
         ? 'Pengajuan peminjaman telah ditolak oleh Kepala Sarpras' 
-        : 'Peminjaman disetujui resmi oleh Kepala Sarpras! Pemohon dapat mencetak Surat Izin Peminjaman.',
+        : 'Peminjaman telah disetujui Kepala Sarpras dan diteruskan ke Kepala Administrasi Umum.',
       loan: updated,
     });
   } catch (err: unknown) {

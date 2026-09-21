@@ -12,7 +12,7 @@ export interface AuthUser {
   id: string;
   username: string;
   name: string;
-  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
+  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS' | 'KEPALA_ADMIN_UMUM';
 }
 
 function base64UrlEncode(str: string): string {

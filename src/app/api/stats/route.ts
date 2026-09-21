@@ -20,6 +20,7 @@ export async function GET() {
     const availableAssets = count(assets, (row) => row.status === 'TERSEDIA');
     const pendingStaff = count(loans, (row) => row.status === 'PENDING_STAFF');
     const pendingHead = count(loans, (row) => row.status === 'PENDING_HEAD');
+    const pendingAdminUmum = count(loans, (row) => row.status === 'PENDING_ADMIN_UMUM');
     const approvedLoans = count(loans, (row) => row.status === 'APPROVED');
     const inUseLoans = count(loans, (row) => row.status === 'IN_USE');
     const returnedLoans = count(loans, (row) => row.status === 'RETURNED');
@@ -42,10 +43,11 @@ export async function GET() {
         loans: {
           pending_staff: pendingStaff,
           pending_head: pendingHead,
+          pending_admin_umum: pendingAdminUmum,
           approved: approvedLoans,
           in_use: inUseLoans,
           returned: returnedLoans,
-          total_active: pendingStaff + pendingHead + approvedLoans + inUseLoans,
+          total_active: pendingStaff + pendingHead + pendingAdminUmum + approvedLoans + inUseLoans,
         },
         maintenance: {
           scheduled: scheduledMnt,

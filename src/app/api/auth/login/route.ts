@@ -7,7 +7,7 @@ interface UserRow {
   username: string;
   password_hash: string;
   name: string;
-  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
+  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS' | 'KEPALA_ADMIN_UMUM';
 }
 
 export async function POST(req: NextRequest) {

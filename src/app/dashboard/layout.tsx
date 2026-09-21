@@ -21,7 +21,7 @@ interface AuthUser {
   id: string;
   username: string;
   name: string;
-  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
+  role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS' | 'KEPALA_ADMIN_UMUM';
 }
 
 export default function DashboardLayout({
@@ -33,7 +33,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pendingCount, setPendingCount] = useState({ staff: 0, head: 0 });
+  const [pendingCount, setPendingCount] = useState({ staff: 0, head: 0, adminUmum: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -63,6 +63,7 @@ export default function DashboardLayout({
           setPendingCount({
             staff: data.stats.loans.pending_staff || 0,
             head: data.stats.loans.pending_head || 0,
+            adminUmum: data.stats.loans.pending_admin_umum || 0,
           });
         }
       })
@@ -87,17 +88,20 @@ export default function DashboardLayout({
 
   const roleLabel = 
     user?.role === 'KEPALA_SARPRAS' ? 'Kepala Bagian Sarpras' :
+    user?.role === 'KEPALA_ADMIN_UMUM' ? 'Kepala Administrasi Umum' :
     user?.role === 'STAFF_SARPRAS' ? 'Staff Sarpras' : 'Administrator';
 
   const roleColor =
     user?.role === 'KEPALA_SARPRAS' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+    user?.role === 'KEPALA_ADMIN_UMUM' ? 'bg-cyan-100 text-cyan-800 border-cyan-200' :
     user?.role === 'STAFF_SARPRAS' ? 'bg-blue-100 text-blue-800 border-blue-200' :
     'bg-emerald-100 text-emerald-800 border-emerald-200';
 
   const relevantPending = 
     user?.role === 'KEPALA_SARPRAS' ? pendingCount.head :
+    user?.role === 'KEPALA_ADMIN_UMUM' ? pendingCount.adminUmum :
     user?.role === 'STAFF_SARPRAS' ? pendingCount.staff :
-    pendingCount.staff + pendingCount.head;
+    pendingCount.staff + pendingCount.head + pendingCount.adminUmum;
 
   const navItems = [
     {
