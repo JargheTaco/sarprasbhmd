@@ -105,6 +105,12 @@ export default function InventarisPage() {
   const [formData, setFormData] = useState({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<
+    | { type: 'asset'; asset: Asset }
+    | { type: 'building'; building: string; assetCount: number }
+    | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Import states
   const [importing, setImporting] = useState(false);
@@ -227,23 +233,27 @@ export default function InventarisPage() {
   };
 
   const handleDelete = async (asset: Asset) => {
-    if (!confirm(`Hapus aset "${asset.name}" (${asset.code})?\nTindakan ini tidak dapat dibatalkan.`)) return;
+    setDeleting(true);
     try {
       const res = await fetch(`/api/assets/${asset.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus aset');
+      setDeleteTarget(null);
       await fetchAssets();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Gagal menghapus aset');
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const handleDeleteBuilding = async (building: string, assetCount: number) => {
-    if (!confirm(`Hapus gedung "${building}" beserta ${assetCount} aset di dalamnya?\nTindakan ini tidak dapat dibatalkan.`)) return;
+  const handleDeleteBuilding = async (building: string) => {
+    setDeleting(true);
     try {
       const res = await fetch(`/api/assets?building=${encodeURIComponent(building)}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus gedung');
+      setDeleteTarget(null);
       setExpandedBuildings(prev => {
         const next = new Set(prev);
         next.delete(building);
@@ -252,6 +262,17 @@ export default function InventarisPage() {
       await fetchAssets();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Gagal menghapus gedung');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'asset') {
+      handleDelete(deleteTarget.asset);
+    } else {
+      handleDeleteBuilding(deleteTarget.building);
     }
   };
 
@@ -458,7 +479,7 @@ export default function InventarisPage() {
                   </button>
                   {currentUser?.role === 'ADMIN' && (
                     <button
-                      onClick={() => handleDeleteBuilding(building, buildingTotal)}
+                      onClick={() => setDeleteTarget({ type: 'building', building, assetCount: buildingTotal })}
                       title="Hapus gedung beserta seluruh aset"
                       className="p-2 rounded-lg text-rose-500 hover:bg-rose-100 transition-colors"
                     >
@@ -529,7 +550,7 @@ export default function InventarisPage() {
                                             <Edit3 className="w-3.5 h-3.5" />
                                           </button>
                                           <button
-                                            onClick={() => handleDelete(asset)}
+                                            onClick={() => setDeleteTarget({ type: 'asset', asset })}
                                             title="Hapus"
                                             className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-100 transition-colors"
                                           >
@@ -824,6 +845,56 @@ export default function InventarisPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 id="delete-dialog-title" className="text-lg font-bold text-slate-900">
+                  Konfirmasi Penghapusan
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  {deleteTarget.type === 'asset'
+                    ? `Hapus aset "${deleteTarget.asset.name}" (${deleteTarget.asset.code})?`
+                    : `Hapus gedung "${deleteTarget.building}" beserta ${deleteTarget.assetCount} aset di dalamnya?`}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+              Tindakan ini tidak dapat dibatalkan. Data hanya dapat dihapus jika tidak memiliki riwayat peminjaman atau perawatan.
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deleting ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
           </div>
         </div>
       )}
