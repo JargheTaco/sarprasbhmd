@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, Printer, ShieldCheck, X } from 'lucide-react';
+import Image from 'next/image';
 
 interface LoanData {
   ticket_code: string;
@@ -89,9 +90,16 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
         </div>
 
         {/* Official Letter Content (Printable) */}
-        <div className="p-8 sm:p-12 text-slate-800 bg-white font-serif leading-relaxed print:p-8">
+        <div className="letter-content p-8 sm:p-12 text-slate-800 bg-white font-serif leading-relaxed print:p-3">
           {/* Letterhead */}
-          <div className="border-b-4 border-double border-slate-900 pb-4 mb-6 text-center">
+          <div className="border-b-4 border-double border-slate-900 pb-3 mb-4 text-center relative">
+            <Image
+              src="/logo-universitas.png"
+              alt="Logo Universitas Bhamada Slawi"
+              width={64}
+              height={64}
+              className="absolute left-1 top-0 h-14 w-14 object-contain print:h-12 print:w-12"
+            />
             <h1 className="font-extrabold text-lg sm:text-xl uppercase tracking-wider text-slate-900 font-sans mt-0.5">
               UNIVERSITAS BHAMADA SLAWI
             </h1>
@@ -99,12 +107,12 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
               SARANA PRASARANA
             </h2>
             <p className="text-[11px] text-slate-500 font-sans mt-1">
-               Jl. Cut Nyak Dien No.16, Griya Prajamukti, Kalisapu, Kec. Slawi, Kabupaten Tegal, Jawa Tengah 52416
+              Jl. Cut Nyak Dien No.16, Griya Prajamukti, Kalisapu, Kec. Slawi, Kabupaten Tegal, Jawa Tengah 52416
             </p>
           </div>
 
           {/* Letter Title */}
-          <div className="text-center my-6">
+          <div className="text-center my-4">
             <h3 className="font-bold text-base sm:text-lg uppercase tracking-wider underline underline-offset-4 decoration-2">
               SURAT KEPUTUSAN IZIN PEMINJAMAN SARANA DAN PRASARANA
             </h3>
@@ -114,13 +122,13 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
           </div>
 
           {/* Letter Body */}
-          <div className="space-y-4 text-xs sm:text-sm">
+          <div className="space-y-2 text-xs sm:text-sm">
             <p>
               Berdasarkan hasil verifikasi administrasi & teknis Staff Sarpras serta persetujuan Kepala Bagian Sarana dan Prasarana dan Kepala Administrasi Umum Kampus, dengan ini menerbitkan izin penggunaan sarana prasarana kepada:
             </p>
 
             {/* Borrower Details Table */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-sans my-3 space-y-1.5">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 font-sans my-2 space-y-1">
               <div className="grid grid-cols-3 gap-2">
                 <span className="text-slate-500 font-medium">Nama Pemohon</span>
                 <span className="col-span-2 font-bold text-slate-900">: {loan.borrower_name}</span>
@@ -138,7 +146,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
             <p>Untuk melaksanakan kegiatan dengan ketentuan sarana prasarana sebagai berikut:</p>
 
             {/* Asset Details Table */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-sans my-3 space-y-1.5">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 font-sans my-2 space-y-1">
               <div className="grid grid-cols-3 gap-2">
                 <span className="text-slate-500 font-medium">Sarpras yang Dipinjam</span>
                 <span className="col-span-2 font-bold text-blue-900">: {loan.asset_name} ({loan.asset_code})</span>
@@ -177,12 +185,12 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
           </div>
 
           {/* Verification & Signatures Section */}
-          <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end font-sans">
+          <div className="mt-5 pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end font-sans">
             {/* Verifikator Staff */}
             <div className="text-center text-xs space-y-1">
               <p className="text-slate-500 text-[11px]">Telah Diverifikasi Oleh:</p>
               <p className="font-semibold text-slate-800">Staff Bagian Sarpras</p>
-              <div className="py-2 flex items-center justify-center">
+              <div className="py-1 flex items-center justify-center">
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   VERIFIED DIGITAL
@@ -200,7 +208,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
             <div className="text-center text-xs space-y-1">
               <p className="text-slate-500 text-[11px]">Mengetahui & Menyetujui:</p>
               <p className="font-semibold text-slate-800">Kepala Bagian Sarpras</p>
-              <div className="py-2 flex items-center justify-center">
+              <div className="py-1 flex items-center justify-center">
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   OFFICIALLY APPROVED
@@ -218,7 +226,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
             <div className="text-center text-xs space-y-1">
               <p className="text-slate-500 text-[11px]">Menyetujui Administrasi:</p>
               <p className="font-semibold text-slate-800">Kepala Administrasi Umum</p>
-              <div className="py-2 flex items-center justify-center">
+              <div className="py-1 flex items-center justify-center">
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-800 bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   ADMINISTRATIVELY APPROVED

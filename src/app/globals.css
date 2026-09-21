@@ -48,4 +48,17 @@ body {
     overflow: visible !important;
     background: white !important;
   }
+
+  .print-letter .letter-content {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 4mm !important;
+    font-size: 9.5pt !important;
+    line-height: 1.25 !important;
+  }
+
+  .print-letter .letter-content > div {
+    break-inside: avoid;
+  }
 }
