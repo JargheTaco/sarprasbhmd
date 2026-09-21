@@ -60,7 +60,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white print:static print:overflow-visible">
+    <div className="print-letter fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white print:static print:overflow-visible">
       {/* Container */}
       <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:max-w-none print:rounded-none">
         {/* Modal Top Bar (Hidden in Print) */}
