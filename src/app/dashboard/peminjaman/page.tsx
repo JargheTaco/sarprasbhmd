@@ -1,29 +1,25 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { 
-  FileCheck2, 
-  Clock, 
-  ShieldCheck, 
-  CheckCircle2, 
-  XCircle, 
-  RotateCcw, 
-  Car, 
-  Building2, 
-  Printer, 
-  CheckSquare, 
-  AlertCircle, 
-  User, 
-  Phone, 
-  Calendar, 
-  Info,
-  Layers,
-  Wrench,
-  Search
-} from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
 import { OfficialLetterModal } from '@/components/OfficialLetterModal';
+import { StatusBadge } from '@/components/StatusBadge';
+import {
+    AlertCircle,
+    Calendar,
+    Car,
+    CheckCircle2,
+    CheckSquare,
+    Clock,
+    Layers,
+    Phone,
+    Printer,
+    RotateCcw,
+    Search,
+    ShieldCheck,
+    User,
+    XCircle
+} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 interface LoanItem {
   id: string;
@@ -82,6 +78,7 @@ function PeminjamanContent() {
   const [selectedLoan, setSelectedLoan] = useState<LoanItem | null>(null);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [headModalOpen, setHeadModalOpen] = useState(false);
+  const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [letterModalOpen, setLetterModalOpen] = useState(false);
 
@@ -222,16 +219,27 @@ function PeminjamanContent() {
   };
 
   // Handle Dispatch (Handover keys/unit)
-  const handleDispatch = async (loan: LoanItem) => {
-    if (!confirm(`Konfirmasi serah terima unit / kunci untuk tiket ${loan.ticket_code}?`)) return;
+  const handleDispatch = (loan: LoanItem) => {
+    setSelectedLoan(loan);
+    setDispatchModalOpen(true);
+    setActionError(null);
+  };
 
+  const handleDispatchConfirm = async () => {
+    if (!selectedLoan) return;
+    setSubmitting(true);
+    setActionError(null);
     try {
-      const res = await fetch(`/api/loans/${loan.ticket_code}/dispatch`, { method: 'POST' });
+      const res = await fetch(`/api/loans/${selectedLoan.ticket_code}/dispatch`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memproses serah terima');
+      setDispatchModalOpen(false);
+      setSelectedLoan(null);
       await fetchData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Gagal serah terima');
+      setActionError(err instanceof Error ? err.message : 'Gagal serah terima');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -515,6 +523,84 @@ function PeminjamanContent() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* MODAL: Konfirmasi Serah Terima Sarpras */}
+      {dispatchModalOpen && selectedLoan && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dispatch-modal-title"
+            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl"
+          >
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">
+                  Tahap Serah Terima
+                </span>
+                <h3 id="dispatch-modal-title" className="text-lg font-bold text-slate-900">
+                  Konfirmasi Serah Terima Unit / Kunci
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDispatchModalOpen(false)}
+                disabled={submitting}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold disabled:opacity-50"
+              >
+                Tutup
+              </button>
+            </div>
+
+            {actionError && (
+              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-blue-800 font-bold">Nomor Tiket</span>
+                <span className="font-mono font-bold text-blue-950">{selectedLoan.ticket_code}</span>
+              </div>
+              <div className="border-t border-blue-100 pt-2">
+                <p className="font-bold text-slate-900">{selectedLoan.asset_name} ({selectedLoan.asset_code})</p>
+                <p className="text-slate-600 mt-1">Lokasi: {selectedLoan.asset_location}</p>
+              </div>
+              <p className="text-slate-600">
+                Pemohon: <span className="font-semibold text-slate-800">{selectedLoan.borrower_name}</span> ({selectedLoan.borrower_role})
+              </p>
+              <p className="text-slate-600">
+                Jadwal: <span className="font-semibold text-slate-800">{selectedLoan.start_date} ({selectedLoan.start_time}) s/d {selectedLoan.end_date} ({selectedLoan.end_time})</span>
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+              Pastikan unit atau kunci sudah diserahkan kepada pemohon. Setelah dikonfirmasi, status peminjaman berubah menjadi <strong>sedang digunakan</strong>.
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDispatchModalOpen(false)}
+                disabled={submitting}
+                className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDispatchConfirm}
+                disabled={submitting}
+                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md disabled:opacity-50"
+              >
+                {submitting ? 'Memproses...' : 'Konfirmasi Serah Terima'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

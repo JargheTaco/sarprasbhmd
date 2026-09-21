@@ -90,9 +90,6 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
         <div className="p-8 sm:p-12 text-slate-800 bg-white font-serif leading-relaxed print:p-8">
           {/* Letterhead */}
           <div className="border-b-4 border-double border-slate-900 pb-4 mb-6 text-center">
-            <h4 className="font-bold text-xs uppercase tracking-widest text-slate-600 font-sans">
-              Kementerian Pendidikan Tinggi, Riset, dan Teknologi
-            </h4>
             <h1 className="font-extrabold text-lg sm:text-xl uppercase tracking-wider text-slate-900 font-sans mt-0.5">
               UNIVERSITAS BHAMADA SLAWI
             </h1>
@@ -100,7 +97,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
               SARANA PRASARANA
             </h2>
             <p className="text-[11px] text-slate-500 font-sans mt-1">
-              Jl. Kampus Terpadu No. 1, Graha Rektorat Lt. 1 | Hotline: (021) 789-0123 | Email: sarpras@kampus.ac.id
+               Jl. Cut Nyak Dien No.16, Griya Prajamukti, Kalisapu, Kec. Slawi, Kabupaten Tegal, Jawa Tengah 52416
             </p>
           </div>
 
