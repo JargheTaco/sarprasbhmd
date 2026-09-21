@@ -374,23 +374,6 @@ function PeminjamanContent() {
         </button>
 
         <button
-          onClick={() => setActiveTab('active')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'active'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-          }`}
-        >
-          <Car className="w-4 h-4" />
-          <span>3. Sedang Digunakan & Serah Terima</span>
-          {countActive > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'active' ? 'bg-blue-800 text-blue-100' : 'bg-blue-100 text-blue-800'}`}>
-              {countActive}
-            </span>
-          )}
-        </button>
-
-        <button
           onClick={() => setActiveTab('admin-umum')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'admin-umum'
@@ -408,6 +391,23 @@ function PeminjamanContent() {
         </button>
 
         <button
+          onClick={() => setActiveTab('active')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'active'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          <Car className="w-4 h-4" />
+          <span>4. Sedang Digunakan & Serah Terima</span>
+          {countActive > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'active' ? 'bg-blue-800 text-blue-100' : 'bg-blue-100 text-blue-800'}`}>
+              {countActive}
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab('archive')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'archive'
@@ -416,7 +416,7 @@ function PeminjamanContent() {
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>4. Arsip & Riwayat ({countArchive})</span>
+          <span>5. Arsip & Riwayat ({countArchive})</span>
         </button>
       </div>
 
