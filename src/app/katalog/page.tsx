@@ -11,8 +11,6 @@ import {
     Send,
     Tv,
     Users,
-    Wrench,
-    Zap
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -37,7 +35,7 @@ export default function KatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
   useEffect(() => {
-    let url = '/api/assets?';
+    let url = '/api/assets?loanable=true&';
     if (selectedCategory !== 'ALL') url += `category=${selectedCategory}&`;
     if (search.trim()) url += `q=${encodeURIComponent(search.trim())}&`;
 
@@ -60,8 +58,6 @@ export default function KatalogPage() {
     { label: 'Mobil Kampus', val: 'VEHICLE', icon: Car },
     { label: 'Ruang Kelas & Aula', val: 'ROOM', icon: Building2 },
     { label: 'Alat Elektronik Pembelajaran', val: 'ELECTRONIC', icon: Tv },
-    { label: 'Mesin & Workshop Lab', val: 'MACHINERY', icon: Wrench },
-    { label: 'Kelistrikan & Genset', val: 'ELECTRICAL', icon: Zap },
   ];
 
   return (
@@ -76,7 +72,7 @@ export default function KatalogPage() {
             Katalog Sarpras yang Dapat Dipinjam
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Ajukan peminjaman armada kendaraan dinas, aula, ruang pertemuan, dan alat elektronik portabel kampus — <strong>tanpa perlu login</strong>.
+            Ajukan peminjaman mobil kampus, ruang kelas, aula, proyektor, dan peralatan portabel Sarpras — <strong>tanpa perlu login</strong>.
           </p>
         </div>
 
@@ -93,11 +89,11 @@ export default function KatalogPage() {
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start gap-2">
         <ClipboardList className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
         <span>
-          <strong>Mencari inventaris tetap per ruangan atau kelas?</strong>{' '}
+          <strong>Inventaris aset ruangan dikelola terpisah dari katalog peminjaman.</strong>{' '}
           <Link href="/inventaris" className="underline font-semibold text-blue-700">
             Buka Portal Inventaris Kelas & Ruangan (KIR) →
           </Link>{' '}
-          untuk melihat daftar meja, kursi, AC, proyektor, dan peralatan yang terpasang di setiap ruang kuliah.
+          untuk melihat seluruh aset tetap seperti meja, kursi, AC, dan peralatan yang terpasang di setiap ruang kuliah.
         </span>
       </div>
 

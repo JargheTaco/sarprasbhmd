@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const building = searchParams.get('building');
     const room = searchParams.get('room');
     const search = searchParams.get('q');
+    const loanableOnly = searchParams.get('loanable') === 'true';
 
     let query = supabaseAdmin.from('assets').select('*');
 
@@ -33,8 +34,18 @@ export async function GET(req: NextRequest) {
       query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,building.ilike.%${search}%,room.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
     }
 
-    const { data: assets, error } = await query.order('name', { ascending: true });
+    const { data: fetchedAssets, error } = await query.order('name', { ascending: true });
     if (error) throw error;
+
+    const assets = loanableOnly
+      ? (fetchedAssets || []).filter((asset) => {
+          if (asset.category === 'VEHICLE' || asset.category === 'ROOM') return true;
+          if (asset.category !== 'ELECTRONIC') return false;
+
+          const searchableText = `${asset.name} ${asset.location} ${asset.specs}`.toLowerCase();
+          return searchableText.includes('sarpras') || searchableText.includes('proyektor') || searchableText.includes('projector');
+        })
+      : fetchedAssets;
     return NextResponse.json({ success: true, assets });
   } catch (err: unknown) {
     console.error('Fetch assets error:', err);

@@ -97,6 +97,9 @@ export async function POST(req: NextRequest) {
     interface AssetCheck {
       id: string;
       name: string;
+      category: string;
+      location: string;
+      specs: string | null;
       condition: string;
       status: string;
     }
@@ -104,13 +107,30 @@ export async function POST(req: NextRequest) {
     if (!isRoomLoan) {
       const { data: selectedAsset, error: assetError } = await supabaseAdmin
         .from('assets')
-        .select('id, name, condition, status')
+        .select('id, name, category, location, specs, condition, status')
         .eq('id', asset_id)
         .maybeSingle<AssetCheck>();
       if (assetError) throw assetError;
       asset = selectedAsset;
       if (!asset) {
         return NextResponse.json({ error: 'Sarpras / Aset yang dipilih tidak ditemukan' }, { status: 404 });
+      }
+
+      const searchableText = `${asset.name} ${asset.location} ${asset.specs || ''}`.toLowerCase();
+      const isLoanableAsset =
+        asset.category === 'VEHICLE' ||
+        asset.category === 'ROOM' ||
+        (asset.category === 'ELECTRONIC' && (
+          searchableText.includes('sarpras') ||
+          searchableText.includes('proyektor') ||
+          searchableText.includes('projector')
+        ));
+
+      if (!isLoanableAsset) {
+        return NextResponse.json(
+          { error: 'Aset ini merupakan inventaris ruangan dan tidak tersedia untuk peminjaman.' },
+          { status: 400 }
+        );
       }
     }
 
