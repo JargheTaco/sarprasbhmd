@@ -2,13 +2,13 @@
 
 import { StatusBadge } from '@/components/StatusBadge';
 import {
-    AlertCircle,
-    ArrowRight,
-    Check,
-    CheckCircle2,
-    Copy,
-    Info,
-    Send
+  AlertCircle,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Copy,
+  Info,
+  Send
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -60,7 +60,7 @@ function PinjamFormContent() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetch('/api/assets')
+    fetch('/api/assets?loanable=true&status=TERSEDIA')
       .then((res) => res.json())
       .then((data) => {
         if (data?.assets) {
@@ -259,7 +259,7 @@ function PinjamFormContent() {
                 { label: 'Semua Sarpras', val: 'ALL' },
                 { label: 'Mobil Kampus', val: 'VEHICLE' },
                 { label: 'Ruang Kelas & Aula', val: 'ROOM' },
-                { label: 'Alat Elektronik & Fasilitas', val: 'ELECTRONIC' },
+                { label: 'Peralatan Portabel Sarpras', val: 'ELECTRONIC' },
               ].map((tab) => (
                 <button
                   type="button"

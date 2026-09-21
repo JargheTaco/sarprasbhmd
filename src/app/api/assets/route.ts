@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
           if (asset.category !== 'ELECTRONIC') return false;
 
           const searchableText = `${asset.name} ${asset.location} ${asset.specs}`.toLowerCase();
-          return searchableText.includes('sarpras') || searchableText.includes('proyektor') || searchableText.includes('projector');
+          return searchableText.includes('sarpras') || searchableText.includes('proyektor') || searchableText.includes('projector') || searchableText.includes('kabel');
         })
       : fetchedAssets;
     return NextResponse.json({ success: true, assets });

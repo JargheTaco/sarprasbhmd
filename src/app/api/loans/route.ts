@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
         (asset.category === 'ELECTRONIC' && (
           searchableText.includes('sarpras') ||
           searchableText.includes('proyektor') ||
-          searchableText.includes('projector')
+          searchableText.includes('projector') ||
+          searchableText.includes('kabel')
         ));
 
       if (!isLoanableAsset) {
