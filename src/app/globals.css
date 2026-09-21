@@ -27,7 +27,16 @@ body {
 
 @media print {
   @page {
-    margin: 12mm;
+    margin: 8mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
   }
 
   body * {
@@ -42,11 +51,22 @@ body {
   .print-letter {
     position: absolute !important;
     inset: 0 !important;
+    bottom: auto !important;
     display: block !important;
     width: 100% !important;
+    height: auto !important;
     min-height: auto !important;
     overflow: visible !important;
     background: white !important;
+  }
+
+  .print-letter-container {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .print-letter .letter-content {
