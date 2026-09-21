@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Printer, QrCode, ShieldCheck, X } from 'lucide-react';
+import { CheckCircle2, Printer, ShieldCheck, X } from 'lucide-react';
 
 interface LoanData {
   ticket_code: string;
@@ -178,16 +178,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
           </div>
 
           {/* Verification & Signatures Section */}
-          <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-4 items-end font-sans">
-            {/* QR Verification Seal */}
-            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-              <div className="w-18 h-18 bg-white p-2 rounded-lg border border-slate-300 shadow-xs flex items-center justify-center">
-                <QrCode className="w-14 h-14 text-slate-900" />
-              </div>
-              <span className="text-[9px] font-bold text-slate-500 uppercase mt-1">Validasi Dokumen Digital</span>
-              <span className="text-[10px] font-mono text-blue-700 font-semibold">{loan.ticket_code}</span>
-            </div>
-
+          <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 items-end font-sans">
             {/* Verifikator Staff */}
             <div className="text-center text-xs space-y-1">
               <p className="text-slate-500 text-[11px]">Telah Diverifikasi Oleh:</p>

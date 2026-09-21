@@ -247,7 +247,7 @@ export default function HomePage() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Surat Izin resmi otomatis ber-QR Code</span>
+                <span>Surat Izin resmi siap dicetak</span>
               </li>
             </ul>
           </div>
@@ -335,7 +335,7 @@ export default function HomePage() {
             </div>
             <h4 className="font-bold text-slate-900 mb-2">Cetak Surat & Ambil Unit</h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Unduh Surat Izin resmi ber-QR Code di halaman pelacakan, dan serahkan ke bagian Sarpras saat pengambilan kunci/barang.
+              Unduh Surat Izin resmi di halaman pelacakan, dan serahkan ke bagian Sarpras saat pengambilan kunci/barang.
             </p>
           </div>
         </div>

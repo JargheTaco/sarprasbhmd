@@ -1,29 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { 
-  Search, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  FileCheck2, 
-  Car, 
-  Printer, 
-  Calendar, 
-  User, 
-  Phone, 
-  Building2, 
-  Info, 
-  AlertCircle,
-  ShieldCheck,
-  CheckCircle,
-  HelpCircle,
-  Download
-} from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
 import { OfficialLetterModal } from '@/components/OfficialLetterModal';
+import { StatusBadge } from '@/components/StatusBadge';
+import {
+    AlertCircle,
+    CheckCircle,
+    CheckCircle2,
+    FileCheck2,
+    Printer,
+    Search,
+    ShieldCheck
+} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import React, { Suspense, useEffect, useState } from 'react';
 
 interface LoanDetail {
   id: string;
@@ -269,7 +258,7 @@ function TrackingContent() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all cursor-pointer shrink-0"
               >
                 <Printer className="w-4 h-4" />
-                <span>Cetak Surat Izin Resmi (QR)</span>
+                <span>Cetak Surat Izin Resmi</span>
               </button>
             )}
           </div>
