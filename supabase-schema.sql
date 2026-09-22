@@ -92,6 +92,17 @@ alter table loan_requests add column if not exists admin_umum_checklist jsonb;
 alter table loan_requests add column if not exists admin_umum_approved_at timestamptz;
 alter table loan_requests add column if not exists admin_umum_approved_by text;
 
+-- Additional assets can be attached to one room loan (for example projector and cable).
+create table if not exists loan_request_items (
+  id text primary key,
+  loan_request_id text not null references loan_requests(id) on delete cascade,
+  asset_id text not null references assets(id),
+  created_at timestamptz not null default now(),
+  unique (loan_request_id, asset_id)
+);
+
+create index if not exists idx_loan_request_items_asset on loan_request_items(asset_id);
+
 create table if not exists maintenance_records (
   id text primary key,
   ticket_number text unique not null,

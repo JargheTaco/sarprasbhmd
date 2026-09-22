@@ -34,6 +34,7 @@ function PinjamFormContent() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedAssetId, setSelectedAssetId] = useState<string>(preselectedAssetId || '');
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>(preselectedAssetId ? [preselectedAssetId] : []);
   const [roomBuilding, setRoomBuilding] = useState('');
   const [roomName, setRoomName] = useState('');
   
@@ -74,6 +75,8 @@ function PinjamFormContent() {
   }, [preselectedAssetId]);
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId);
+  const selectedPortableAssets = assets.filter((asset) => selectedAssetIds.includes(asset.id));
+  const portableAssets = assets.filter((asset) => asset.category === 'ELECTRONIC');
 
   // Filter assets by chosen category tab
   const filteredAssets = selectedCategory === 'ALL'
@@ -108,6 +111,7 @@ function PinjamFormContent() {
         body: JSON.stringify({
           ...formData,
           asset_id: selectedCategory === 'ROOM' ? null : selectedAssetId,
+          asset_ids: selectedCategory === 'ROOM' ? selectedAssetIds : [],
           room_building: selectedCategory === 'ROOM' ? roomBuilding : null,
           room_name: selectedCategory === 'ROOM' ? roomName.trim() : null,
         }),
@@ -203,6 +207,7 @@ function PinjamFormContent() {
               onClick={() => {
                 setSuccessTicket(null);
                 setSelectedAssetId('');
+                setSelectedAssetIds([]);
                 setRoomBuilding('');
                 setRoomName('');
                 setFormData({
@@ -267,6 +272,7 @@ function PinjamFormContent() {
                   onClick={() => {
                     setSelectedCategory(tab.val);
                     if (tab.val === 'ROOM') setSelectedAssetId('');
+                    if (tab.val !== 'ROOM') setSelectedAssetIds([]);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     selectedCategory === tab.val
@@ -280,7 +286,8 @@ function PinjamFormContent() {
             </div>
 
             {selectedCategory === 'ROOM' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl bg-blue-50 border border-blue-100 p-4">
+              <div className="space-y-4 rounded-xl bg-blue-50 border border-blue-100 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">Gedung Kampus *</label>
                   <select
@@ -309,6 +316,44 @@ function PinjamFormContent() {
                 <p className="sm:col-span-2 text-xs text-blue-800">
                   Pilih gedung A-L lalu tulis ruang yang diperlukan. Ruangan tidak perlu dibuat satu per satu sebagai aset inventaris.
                 </p>
+                </div>
+
+                <div className="border-t border-blue-200 pt-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700">Peralatan tambahan (opsional)</label>
+                    <p className="text-[11px] text-blue-800 mt-1">Centang satu atau beberapa barang yang ingin dipakai di ruang tersebut.</p>
+                  </div>
+                  {portableAssets.length === 0 ? (
+                    <p className="text-xs text-slate-500 bg-white rounded-lg p-3">Belum ada peralatan portabel yang tersedia.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                      {portableAssets.map((asset) => {
+                        const isSelected = selectedAssetIds.includes(asset.id);
+                        return (
+                          <label
+                            key={asset.id}
+                            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                              isSelected ? 'border-blue-600 bg-white shadow-sm' : 'border-blue-100 bg-white/70 hover:border-blue-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => setSelectedAssetIds((current) =>
+                                isSelected ? current.filter((id) => id !== asset.id) : [...current, asset.id]
+                              )}
+                              className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-xs font-bold text-slate-900">{asset.name}</span>
+                              <span className="block text-[11px] text-slate-500">{asset.code} · {asset.location}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
@@ -347,14 +392,15 @@ function PinjamFormContent() {
             )}
 
             {/* Selected Asset Alert */}
-            {selectedAsset && (
+            {(selectedAsset || selectedPortableAssets.length > 0) && (
               <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex items-start gap-3">
                 <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">Sarpras Terpilih: {selectedAsset.name}</span>
-                  <p className="text-blue-700 mt-0.5">
-                    Lokasi: {selectedAsset.location} | Kondisi: {selectedAsset.condition} | Kapasitas: {selectedAsset.capacity || '-'} orang
-                  </p>
+                  {selectedAsset && <span className="font-bold block">Sarpras Terpilih: {selectedAsset.name}</span>}
+                  {selectedPortableAssets.length > 0 && (
+                    <span className="font-bold block">Peralatan tambahan: {selectedPortableAssets.map((asset) => asset.name).join(', ')}</span>
+                  )}
+                  {selectedAsset && <p className="text-blue-700 mt-0.5">Lokasi: {selectedAsset.location} | Kondisi: {selectedAsset.condition} | Kapasitas: {selectedAsset.capacity || '-'} orang</p>}
                 </div>
               </div>
             )}

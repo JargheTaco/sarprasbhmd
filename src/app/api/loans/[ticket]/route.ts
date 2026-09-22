@@ -34,6 +34,25 @@ export async function GET(req: NextRequest, { params }: Params) {
       );
     }
 
+    const { data: itemRows, error: itemError } = await supabaseAdmin
+      .from('loan_request_items')
+      .select('assets(name, code, category, location, specs, condition)')
+      .eq('loan_request_id', loan.id);
+    if (itemError) throw itemError;
+    const itemAssets = (itemRows || []).map((item) => item.assets?.[0]).filter(Boolean);
+    loan.asset_items = [
+      ...(loan.assets ? [loan.assets] : []),
+      ...itemAssets,
+    ];
+    loan.asset_name = [
+      ...(loan.assets ? [loan.assets.name] : []),
+      ...itemAssets.map((asset) => asset.name),
+    ].join(' + ') || `Ruangan ${loan.room_name || ''}`.trim();
+    loan.asset_code = [
+      ...(loan.assets ? [loan.assets.code] : []),
+      ...itemAssets.map((asset) => asset.code),
+    ].join(' + ') || `${loan.room_building || ''} / ${loan.room_name || ''}`.trim();
+
     return NextResponse.json({ success: true, loan });
   } catch (err: unknown) {
     console.error('Get loan by ticket error:', err);

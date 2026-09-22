@@ -51,11 +51,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       .eq('id', loan.id);
     if (loanError) throw loanError;
 
-    // Update asset status to DIPINJAM
-    if (loan.asset_id) {
+    const { data: additionalItems, error: itemError } = await supabaseAdmin
+      .from('loan_request_items')
+      .select('asset_id')
+      .eq('loan_request_id', loan.id);
+    if (itemError) throw itemError;
+    const assetIds = [loan.asset_id, ...(additionalItems || []).map((item) => item.asset_id)].filter(Boolean);
+    if (assetIds.length > 0) {
       const { error: assetError } = await supabaseAdmin.from('assets')
         .update({ status: 'DIPINJAM' })
-        .eq('id', loan.asset_id);
+        .in('id', assetIds);
       if (assetError) throw assetError;
     }
 

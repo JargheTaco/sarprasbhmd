@@ -64,6 +64,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       asset = selectedAsset;
     }
 
+    const { data: additionalItems, error: itemError } = await supabaseAdmin
+      .from('loan_request_items')
+      .select('asset_id, assets(id, name, category)')
+      .eq('loan_request_id', loan.id);
+    if (itemError) throw itemError;
+    const itemAssets = (additionalItems || []).map((item) => item.assets?.[0]).filter(Boolean) as AssetRow[];
+    const assetIds = [loan.asset_id, ...(additionalItems || []).map((item) => item.asset_id)].filter(Boolean);
+
     const returnChecklistJson = JSON.stringify({
       condition_ok: !!condition_ok,
       cleanliness_ok: !!cleanliness_ok,
@@ -87,16 +95,16 @@ export async function POST(req: NextRequest, { params }: Params) {
     const newAssetStatus = (!condition_ok || create_maintenance_ticket) ? 'DALAM_PERAWATAN' : 'TERSEDIA';
     const newAssetCondition = !condition_ok ? 'RUSAK_RINGAN' : 'BAIK';
 
-    if (loan.asset_id) {
+    if (assetIds.length > 0) {
       const { error: assetUpdateError } = await supabaseAdmin.from('assets').update({
         status: newAssetStatus,
         condition: newAssetCondition,
-      }).eq('id', loan.asset_id);
+      }).in('id', assetIds);
       if (assetUpdateError) throw assetUpdateError;
     }
 
     // If staff requests maintenance ticket creation due to issue
-    if (create_maintenance_ticket && asset) {
+    if (create_maintenance_ticket && (asset || itemAssets.length > 0)) {
       const currentYear = new Date().getFullYear();
       const { count, error: countError } = await supabaseAdmin
         .from('maintenance_records')
@@ -105,23 +113,27 @@ export async function POST(req: NextRequest, { params }: Params) {
       const mntCode = `MNT-${currentYear}-${((count || 0) + 1).toString().padStart(4, '0')}`;
       const mntId = `mnt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-      let mntCategory = 'ELECTRONIC';
-      if (asset.category === 'MACHINERY') mntCategory = 'MACHINERY';
-      if (asset.category === 'ELECTRICAL') mntCategory = 'ELECTRICAL';
-
-      const { error: maintenanceError } = await supabaseAdmin.from('maintenance_records').insert({
-        id: mntId,
-        ticket_number: mntCode,
-        asset_id: asset.id,
-        type: 'CORRECTIVE',
-        category: mntCategory,
-        title: `Perbaikan Pasca Pengembalian (${loan.ticket_code}) - ${asset.name}`,
-        description: maintenance_description || notes || `Laporan kendala saat pengembalian oleh ${loan.borrower_name}`,
-        technician_name: 'Belum Ditugaskan',
-        scheduled_date: new Date().toISOString().split('T')[0],
-        status: 'SCHEDULED',
-        created_at: now,
-      });
+      const maintenanceAssets = [asset, ...itemAssets].filter(Boolean) as AssetRow[];
+      const { error: maintenanceError } = await supabaseAdmin.from('maintenance_records').insert(
+        maintenanceAssets.map((maintenanceAsset, index) => {
+          let mntCategory = 'ELECTRONIC';
+          if (maintenanceAsset.category === 'MACHINERY') mntCategory = 'MACHINERY';
+          if (maintenanceAsset.category === 'ELECTRICAL') mntCategory = 'ELECTRICAL';
+          return {
+            id: `${mntId}_${index}`,
+            ticket_number: `${mntCode}-${index + 1}`,
+            asset_id: maintenanceAsset.id,
+            type: 'CORRECTIVE',
+            category: mntCategory,
+            title: `Perbaikan Pasca Pengembalian (${loan.ticket_code}) - ${maintenanceAsset.name}`,
+            description: maintenance_description || notes || `Laporan kendala saat pengembalian oleh ${loan.borrower_name}`,
+            technician_name: 'Belum Ditugaskan',
+            scheduled_date: new Date().toISOString().split('T')[0],
+            status: 'SCHEDULED',
+            created_at: now,
+          };
+        })
+      );
       if (maintenanceError) throw maintenanceError;
     }
 
