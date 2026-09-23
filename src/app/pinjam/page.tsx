@@ -270,10 +270,9 @@ function PinjamFormContent() {
             {/* Category Filter Tabs */}
             <div className="flex flex-wrap gap-2">
               {[
-                { label: 'Semua Sarpras', val: 'ALL' },
+                { label: 'Peralatan Portabel Sarpras', val: 'ELECTRONIC' },
                 { label: 'Mobil Kampus', val: 'VEHICLE' },
                 { label: 'Ruang Kelas & Aula', val: 'ROOM' },
-                { label: 'Peralatan Portabel Sarpras', val: 'ELECTRONIC' },
               ].map((tab) => (
                 <button
                   type="button"
