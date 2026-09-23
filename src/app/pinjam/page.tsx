@@ -11,7 +11,7 @@ import {
   Send
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useEffect, useState } from 'react';
 
 interface Asset {
@@ -27,7 +27,6 @@ interface Asset {
 }
 
 function PinjamFormContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedAssetId = searchParams.get('asset_id');
 
@@ -78,6 +77,16 @@ function PinjamFormContent() {
   const selectedPortableAssets = assets.filter((asset) => selectedAssetIds.includes(asset.id));
   const portableAssets = assets.filter((asset) => asset.category === 'ELECTRONIC');
 
+  const toggleAssetSelection = (assetId: string) => {
+    setSelectedAssetIds((current) => {
+      const next = current.includes(assetId)
+        ? current.filter((id) => id !== assetId)
+        : [...current, assetId];
+      setSelectedAssetId(next[0] || '');
+      return next;
+    });
+  };
+
   // Filter assets by chosen category tab
   const filteredAssets = selectedCategory === 'ALL'
     ? assets
@@ -92,8 +101,8 @@ function PinjamFormContent() {
       return;
     }
 
-    if (selectedCategory !== 'ROOM' && !selectedAssetId) {
-      setErrorMsg('Silakan pilih salah satu sarana prasarana yang ingin dipinjam.');
+    if (selectedCategory !== 'ROOM' && selectedAssetIds.length === 0) {
+      setErrorMsg('Silakan pilih minimal satu sarana prasarana yang ingin dipinjam.');
       return;
     }
 
@@ -110,8 +119,8 @@ function PinjamFormContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          asset_id: selectedCategory === 'ROOM' ? null : selectedAssetId,
-          asset_ids: selectedCategory === 'ROOM' ? selectedAssetIds : [],
+          asset_id: selectedCategory === 'ROOM' ? null : selectedAssetIds[0],
+          asset_ids: selectedAssetIds,
           room_building: selectedCategory === 'ROOM' ? roomBuilding : null,
           room_name: selectedCategory === 'ROOM' ? roomName.trim() : null,
         }),
@@ -271,8 +280,8 @@ function PinjamFormContent() {
                   key={tab.val}
                   onClick={() => {
                     setSelectedCategory(tab.val);
-                    if (tab.val === 'ROOM') setSelectedAssetId('');
-                    if (tab.val !== 'ROOM') setSelectedAssetIds([]);
+                    setSelectedAssetId(tab.val === 'ROOM' ? '' : selectedAssetIds[0] || '');
+                    if (tab.val === 'ROOM') setSelectedAssetIds([]);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     selectedCategory === tab.val
@@ -355,6 +364,44 @@ function PinjamFormContent() {
                   )}
                 </div>
               </div>
+            ) : selectedCategory === 'ELECTRONIC' ? (
+            <div className="space-y-3">
+              <p className="text-xs text-slate-600">Pilih satu atau beberapa peralatan yang ingin dipinjam dalam pengajuan ini.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+                {filteredAssets.map((asset) => {
+                  const isSelected = selectedAssetIds.includes(asset.id);
+
+                  return (
+                    <label
+                      key={asset.id}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleAssetSelection(asset.id)}
+                        className="sr-only"
+                      />
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                          {asset.code}
+                        </span>
+                        <StatusBadge status={asset.status} type="asset" />
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-900 line-clamp-1 mb-1">{asset.name}</h4>
+                      <p className="text-xs text-slate-500 line-clamp-1 mb-2">Lokasi: {asset.location}</p>
+                      <p className="text-[11px] text-slate-600 line-clamp-2 bg-slate-50 p-1.5 rounded">
+                        {asset.specs || 'Siap digunakan.'}
+                      </p>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
               {filteredAssets.map((asset) => {
@@ -363,7 +410,10 @@ function PinjamFormContent() {
                 return (
                   <div
                     key={asset.id}
-                    onClick={() => setSelectedAssetId(asset.id)}
+                    onClick={() => {
+                      setSelectedAssetId(asset.id);
+                      setSelectedAssetIds([asset.id]);
+                    }}
                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       isSelected
                         ? 'border-blue-600 bg-blue-50/50 shadow-sm'

@@ -111,9 +111,12 @@ export async function POST(req: NextRequest) {
     }
 
     const isRoomLoan = Boolean(!asset_id && room_building && room_name);
-    const additionalAssetIds: string[] = isRoomLoan && Array.isArray(asset_ids)
+    const requestedAssetIds: string[] = Array.isArray(asset_ids)
       ? [...new Set(asset_ids.filter((id): id is string => typeof id === 'string' && Boolean(id.trim())))]
       : [];
+    const additionalAssetIds = isRoomLoan
+      ? requestedAssetIds
+      : requestedAssetIds.filter((id) => id !== asset_id);
 
     // Check if asset exists and is not permanently broken
     interface AssetCheck {
@@ -157,9 +160,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (asset && asset.condition === 'RUSAK_BERAT') {
+    if (asset && (asset.status !== 'TERSEDIA' || asset.condition === 'RUSAK_BERAT')) {
       return NextResponse.json(
-        { error: `Sarpras (${asset.name}) saat ini rusak berat dan tidak dapat dipinjam` },
+        { error: `Sarpras (${asset.name}) saat ini tidak tersedia untuk dipinjam` },
         { status: 400 }
       );
     }
