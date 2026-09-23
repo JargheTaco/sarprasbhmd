@@ -121,7 +121,15 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       .maybeSingle();
     if (linkedLoanError) throw linkedLoanError;
 
-    if (linkedLoan) {
+    const { data: linkedLoanItem, error: linkedLoanItemError } = await supabaseAdmin
+      .from('loan_request_items')
+      .select('id')
+      .eq('asset_id', id)
+      .limit(1)
+      .maybeSingle();
+    if (linkedLoanItemError) throw linkedLoanItemError;
+
+    if (linkedLoan || linkedLoanItem) {
       return NextResponse.json(
         { error: 'Aset tidak dapat dihapus karena memiliki riwayat peminjaman. Ubah status menjadi DALAM_PERAWATAN atau edit datanya.' },
         { status: 400 }
