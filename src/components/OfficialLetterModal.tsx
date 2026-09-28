@@ -30,6 +30,9 @@ interface LoanData {
   admin_umum_approved_by?: string;
   picked_up_at?: string;
   returned_at?: string;
+  handover_to_name?: string;
+  handover_to_nip?: string;
+  handover_condition?: string;
   staff_notes?: string;
   head_notes?: string;
 }
@@ -319,7 +322,7 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
             <div className="mt-2 text-[11px] text-slate-800">
               <p className="text-slate-500">Kondisi saat diterima (coret yang tidak berlaku):</p>
               <p className="mt-0.5 font-semibold">
-                ☐ Baik &nbsp;&nbsp; ☐ Rusak Ringan &nbsp;&nbsp; ☐ Rusak Berat
+                {loan.handover_condition ? '☑' : '☐'} Baik &nbsp;&nbsp; {loan.handover_condition === 'RUSAK_RINGAN' ? '☑' : '☐'} Rusak Ringan &nbsp;&nbsp; {loan.handover_condition === 'RUSAK_BERAT' ? '☑' : '☐'} Rusak Berat
               </p>
             </div>
 
@@ -332,7 +335,12 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
               </div>
               <div className="text-center">
                 <p className="font-bold text-slate-800">Petugas / CS Ruangan</p>
-                <p className="text-slate-500">Nama &amp; NIP: ......................................</p>
+                <p className="text-slate-500">
+                  {loan.handover_to_name || '......................................'}
+                </p>
+                {loan.handover_to_nip && (
+                  <p className="text-slate-500">NIP: {loan.handover_to_nip}</p>
+                )}
                 <div className="h-14" />
                 <p className="border-t border-slate-400 pt-1">Tanda Tangan &amp; Nama</p>
               </div>

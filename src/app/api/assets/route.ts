@@ -2,7 +2,7 @@ import {
   ASSET_TYPES,
   getSuggestedAssetType,
   isAssetType,
-  isMissingAssetTypeColumn,
+  isMissingColumn,
   resolveAssetType,
   withoutAssetType,
 } from '@/lib/assetTypes';
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     const { data: fetchedAssets, error } = await buildQuery(true).order('name', { ascending: true });
 
     // Database lama belum menjalankan migrasi kolom asset_type: filter dijalankan di memori.
-    if (error && needsAssetTypeFilter && isMissingAssetTypeColumn(error)) {
+    if (error && needsAssetTypeFilter && isMissingColumn(error)) {
       console.warn('Kolom assets.asset_type belum tersedia, memakai filter kategori/kata kunci.');
       const fallback = await buildQuery(false).order('name', { ascending: true });
       if (fallback.error) throw fallback.error;
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
     };
 
     let { error: insertError } = await supabaseAdmin.from('assets').insert(payload);
-    if (insertError && isMissingAssetTypeColumn(insertError)) {
+    if (insertError && isMissingColumn(insertError)) {
       const retry = await supabaseAdmin.from('assets').insert(withoutAssetType(payload));
       insertError = retry.error;
     }

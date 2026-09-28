@@ -1,4 +1,4 @@
-import { isLoanableAsset, isMissingAssetTypeColumn } from '@/lib/assetTypes';
+import { isLoanableAsset, isMissingColumn } from '@/lib/assetTypes';
 import { assertSupabaseConfigured, supabaseAdmin, supabaseConfigErrorMessage } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         .select(assetColumns)
         .eq('id', asset_id)
         .maybeSingle<AssetCheck>();
-      if (selected.error && isMissingAssetTypeColumn(selected.error)) {
+      if (selected.error && isMissingColumn(selected.error)) {
         const legacy = await supabaseAdmin
           .from('assets')
           .select(assetColumnsLegacy)
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         .select('id, code, name, category, location, specs, condition, status, asset_type')
         .in('id', additionalAssetIds)
         .returns<AdditionalAsset[]>();
-      if (selectedAdditional.error && isMissingAssetTypeColumn(selectedAdditional.error)) {
+      if (selectedAdditional.error && isMissingColumn(selectedAdditional.error)) {
         const legacy = await supabaseAdmin
           .from('assets')
           .select('id, code, name, category, location, specs, condition, status')

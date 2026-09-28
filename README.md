@@ -39,6 +39,7 @@ Petugas login melalui `/login` untuk membuka dashboard manajemen. Fitur yang ter
 - Melakukan verifikasi Staff melalui checklist ketersediaan dan kondisi fisik sarpras.
 - Memberikan persetujuan akhir sebagai Kepala Sarpras melalui checklist.
 - Mencatat serah terima, penggunaan aset, dan pengembalian.
+- Mencatat identitas petugas atau CS ruangan yang menerima sarpras beserta kondisi barang saat serah terima. Data ini otomatis tercetak pada kolom tanda tangan petugas di Surat Peminjaman.
 - Mengelola data inventaris aset dan informasi kondisi aset.
 - Memilih apakah aset disimpan sebagai Inventaris Aset (tetap) atau Sarana Prasarana (dapat dipinjam) saat menambah, mengubah, atau mengimpor aset.
 - Memfilter arsip aset berdasarkan kategori dan jenis katalog.

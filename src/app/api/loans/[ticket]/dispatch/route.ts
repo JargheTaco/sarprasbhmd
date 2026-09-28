@@ -1,3 +1,4 @@
+import { isMissingColumn } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,6 +18,18 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     const { ticket } = await params;
+
+    // Data petugas / CS ruangan yang menerima sarpras (dipakai pada Surat Peminjaman)
+    const body = await req.json().catch(() => ({}));
+    const handoverToName = typeof body.handover_to_name === 'string' ? body.handover_to_name.trim() : '';
+    const handoverToNip = typeof body.handover_to_nip === 'string' ? body.handover_to_nip.trim() : '';
+    const handoverCondition = ['BAIK', 'RUSAK_RINGAN', 'RUSAK_BERAT'].includes(body.handover_condition)
+      ? body.handover_condition
+      : '';
+
+    if (handoverToName && handoverToName.length > 120) {
+      return NextResponse.json({ error: 'Nama petugas / CS penerima terlalu panjang' }, { status: 400 });
+    }
 
     interface LoanRow {
       id: string;
@@ -46,9 +59,25 @@ export async function POST(req: NextRequest, { params }: Params) {
     const now = new Date().toISOString();
 
     // Update loan status to IN_USE
-    const { error: loanError } = await supabaseAdmin.from('loan_requests')
-      .update({ status: 'IN_USE', picked_up_at: now })
+    const updatePayload: Record<string, unknown> = { status: 'IN_USE', picked_up_at: now };
+    if (handoverToName) updatePayload.handover_to_name = handoverToName;
+    if (handoverToNip) updatePayload.handover_to_nip = handoverToNip;
+    if (handoverCondition) updatePayload.handover_condition = handoverCondition;
+
+    let { error: loanError } = await supabaseAdmin
+      .from('loan_requests')
+      .update(updatePayload)
       .eq('id', loan.id);
+
+    // Kolom serah terima belum tersedia di database lama: tetap proses tanpa data petugas.
+    if (loanError && isMissingColumn(loanError)) {
+      console.warn('Kolom serah terima (handover_*) belum tersedia, diteruskan tanpa data petugas.');
+      const retry = await supabaseAdmin
+        .from('loan_requests')
+        .update({ status: 'IN_USE', picked_up_at: now })
+        .eq('id', loan.id);
+      loanError = retry.error;
+    }
     if (loanError) throw loanError;
 
     const { data: additionalItems, error: itemError } = await supabaseAdmin

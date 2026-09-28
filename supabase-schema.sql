@@ -96,6 +96,9 @@ create table if not exists loan_requests (
   admin_umum_approved_by text,
   picked_up_at timestamptz,
   returned_at timestamptz,
+  handover_to_name text,
+  handover_to_nip text,
+  handover_condition text,
   created_at timestamptz not null default now()
 );
 
@@ -106,6 +109,10 @@ alter table loan_requests add column if not exists admin_umum_notes text;
 alter table loan_requests add column if not exists admin_umum_checklist jsonb;
 alter table loan_requests add column if not exists admin_umum_approved_at timestamptz;
 alter table loan_requests add column if not exists admin_umum_approved_by text;
+-- Data petugas / CS ruangan yang menerima sarpras saat serah terima (dicetak di Surat Peminjaman).
+alter table loan_requests add column if not exists handover_to_name text;
+alter table loan_requests add column if not exists handover_to_nip text;
+alter table loan_requests add column if not exists handover_condition text;
 
 -- Additional assets can be attached to one room loan (for example projector and cable).
 create table if not exists loan_request_items (

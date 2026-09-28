@@ -47,7 +47,7 @@ export function isLoanableAsset(asset: AssetTypeSource) {
   return resolveAssetType(asset) === ASSET_TYPES.SARANA_PRASARANA;
 }
 
-export function isMissingAssetTypeColumn(error: { code?: string } | null | undefined) {
+export function isMissingColumn(error: { code?: string } | null | undefined) {
   return error?.code === '42703' || error?.code === 'PGRST203' || error?.code === 'PGRST204';
 }
 

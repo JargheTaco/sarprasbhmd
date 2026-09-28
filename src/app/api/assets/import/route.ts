@@ -1,4 +1,4 @@
-import { ASSET_TYPES, isAssetType, isMissingAssetTypeColumn, withoutAssetType } from '@/lib/assetTypes';
+import { ASSET_TYPES, isAssetType, isMissingColumn, withoutAssetType } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
       for (const batch of chunks(assets, 250)) {
         const { error: insertError } = await supabaseAdmin.from('assets').insert(batch);
         if (insertError) {
-          if (!isMissingAssetTypeColumn(insertError)) {
+          if (!isMissingColumn(insertError)) {
             console.error('Import assets database error:', insertError);
             return NextResponse.json({
               error: `Gagal menyimpan batch data inventaris: ${databaseErrorMessage(insertError)}`,

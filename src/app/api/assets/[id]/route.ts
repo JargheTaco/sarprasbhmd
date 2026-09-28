@@ -1,7 +1,7 @@
 import {
   getSuggestedAssetType,
   isAssetType,
-  isMissingAssetTypeColumn,
+  isMissingColumn,
   withoutAssetType,
 } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       .maybeSingle();
     let existing = loaded as { id: string; asset_type?: string | null } | null;
 
-    if (existingError && isMissingAssetTypeColumn(existingError)) {
+    if (existingError && isMissingColumn(existingError)) {
       const fallback = await supabaseAdmin.from('assets').select('id').eq('id', id).maybeSingle();
       if (fallback.error) throw fallback.error;
       existing = fallback.data as { id: string } | null;
@@ -118,7 +118,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     };
 
     let { error: updateError } = await supabaseAdmin.from('assets').update(payload).eq('id', id);
-    if (updateError && isMissingAssetTypeColumn(updateError)) {
+    if (updateError && isMissingColumn(updateError)) {
       const retry = await supabaseAdmin.from('assets').update(withoutAssetType(payload)).eq('id', id);
       updateError = retry.error;
     }

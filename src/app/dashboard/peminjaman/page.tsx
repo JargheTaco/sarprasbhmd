@@ -99,6 +99,13 @@ function PeminjamanContent() {
     notes: '',
   });
 
+  // Form Serah Terima: petugas / CS ruangan yang menerima sarpras
+  const [dispatchCheck, setDispatchCheck] = useState({
+    handover_to_name: '',
+    handover_to_nip: '',
+    handover_condition: 'BAIK',
+  });
+
   const [adminUmumCheck, setAdminUmumCheck] = useState({
     administration_approved: true,
     notes: '',
@@ -263,14 +270,23 @@ function PeminjamanContent() {
 
   const handleDispatchConfirm = async () => {
     if (!selectedLoan) return;
+    if (!dispatchCheck.handover_to_name.trim()) {
+      setActionError('Nama petugas / CS ruangan penerima wajib diisi untuk tercetak di Surat Peminjaman.');
+      return;
+    }
     setSubmitting(true);
     setActionError(null);
     try {
-      const res = await fetch(`/api/loans/${selectedLoan.ticket_code}/dispatch`, { method: 'POST' });
+      const res = await fetch(`/api/loans/${selectedLoan.ticket_code}/dispatch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dispatchCheck),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memproses serah terima');
       setDispatchModalOpen(false);
       setSelectedLoan(null);
+      setDispatchCheck({ handover_to_name: '', handover_to_nip: '', handover_condition: 'BAIK' });
       await fetchData();
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : 'Gagal serah terima');
@@ -743,6 +759,49 @@ function PeminjamanContent() {
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
               Pastikan unit atau kunci sudah diserahkan kepada pemohon. Setelah dikonfirmasi, status peminjaman berubah menjadi <strong>sedang digunakan</strong>.
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Nama Petugas / CS Ruangan Penerima *
+                </label>
+                <input
+                  type="text"
+                  value={dispatchCheck.handover_to_name}
+                  onChange={(e) => setDispatchCheck({ ...dispatchCheck, handover_to_name: e.target.value })}
+                  placeholder="Contoh: Slamet Riyadi, CS Ruang E2.9"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Nama ini otomatis tercetak pada kolom tanda tangan petugas / CS Ruangan di Surat Peminjaman.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">NIP / ID Petugas (opsional)</label>
+                  <input
+                    type="text"
+                    value={dispatchCheck.handover_to_nip}
+                    onChange={(e) => setDispatchCheck({ ...dispatchCheck, handover_to_nip: e.target.value })}
+                    placeholder="Contoh: 198705122011011002"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Kondisi Saat Diterima</label>
+                  <select
+                    value={dispatchCheck.handover_condition}
+                    onChange={(e) => setDispatchCheck({ ...dispatchCheck, handover_condition: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="BAIK">Baik</option>
+                    <option value="RUSAK_RINGAN">Rusak Ringan</option>
+                    <option value="RUSAK_BERAT">Rusak Berat</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">

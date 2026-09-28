@@ -50,6 +50,9 @@ interface LoanDetail {
     admin_umum_approved_by?: string;
   picked_up_at?: string;
   returned_at?: string;
+  handover_to_name?: string;
+  handover_to_nip?: string;
+  handover_condition?: string;
   created_at: string;
 }
 
