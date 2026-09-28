@@ -560,23 +560,35 @@ function PeminjamanContent() {
                   </>
                 )}
 
-                {/* In Use status: Return checklist */}
+                {/* In Use status: Return checklist + print letter */}
                 {loan.status === 'IN_USE' && (
-                  <button
-                    onClick={() => {
-                      setSelectedLoan(loan);
-                      setReturnModalOpen(true);
-                      setActionError(null);
-                    }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Proses Pengembalian</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setReturnModalOpen(true);
+                        setActionError(null);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Proses Pengembalian</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setLetterModalOpen(true);
+                      }}
+                      className="w-full py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4 text-slate-500" />
+                      <span>Cetak Surat Peminjaman</span>
+                    </button>
+                  </>
                 )}
 
                 {/* Archived items: View certificate */}
-                {(loan.status === 'RETURNED' || loan.status === 'APPROVED') && (
+                {['RETURNED', 'APPROVED', 'IN_USE'].includes(loan.status) && (
                   <button
                     onClick={() => {
                       setSelectedLoan(loan);

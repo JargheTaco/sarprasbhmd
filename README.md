@@ -24,7 +24,8 @@ SIM-SARPRAS adalah sistem informasi pengelolaan sarana dan prasarana Universitas
 - Mendapatkan kode tiket unik setelah pengajuan berhasil dikirim.
 - Melacak status permohonan melalui kode tiket.
 - Melihat detail tahapan verifikasi Staff Sarpras, persetujuan Kepala Sarpras, serah terima, penggunaan, dan pengembalian.
-- Mengakses surat izin resmi untuk pengajuan yang sudah disetujui.
+- Mencetak Surat Peminjaman sebagai bukti resmi ke CS Ruangan. Tombol cetak muncul setelah pengajuan disetujui dan tetap bisa dipakai saat sarpras sedang dipinjam (`IN_USE`) maupun setelah dikembalikan (`RETURNED`).
+- Surat Peminjaman dilengkapi blok **Bukti Penerimaan Ruangan / Serah Terima** yang ditandatangani pemohon bersama petugas jaga atau CS Ruangan, berisi tanggal & jam diterima, kondisi saat diterima, dan tanggal pengembalian.
 - Melihat jadwal pemakaian aktif dan memeriksa ketersediaan sarpras sebelum mengajukan peminjaman.
 - Menelusuri inventaris ruangan dan kelas berdasarkan gedung, ruangan, nama barang, kode, atau spesifikasi.
 - Menampilkan Kartu Inventaris Ruangan (KIR) untuk ruangan tertentu.

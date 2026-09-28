@@ -21,12 +21,15 @@ interface LoanData {
   purpose: string;
   destination?: string;
   driver_needed?: number;
+  status?: string;
   staff_verified_at?: string;
   staff_verified_by?: string;
   head_approved_at?: string;
   head_approved_by?: string;
   admin_umum_approved_at?: string;
   admin_umum_approved_by?: string;
+  picked_up_at?: string;
+  returned_at?: string;
   staff_notes?: string;
   head_notes?: string;
 }
@@ -61,6 +64,40 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
       return dateStr;
     }
   };
+
+  // Tanggal & jam lengkap dari kolom timestamptz, selalu ditampilkan dalam zona waktu WIB
+  const formatDateTimeIndo = (dateTimeStr?: string) => {
+    if (!dateTimeStr) return '-';
+    const parsed = new Date(dateTimeStr);
+    if (!Number.isNaN(parsed.getTime())) {
+      return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Jakarta',
+      })
+        .format(parsed)
+        .replace(/\./g, ':');
+    }
+    const [datePart, timePart] = dateTimeStr.split(/[ T]/);
+    const time = timePart ? timePart.slice(0, 5) : '';
+    return time ? `${formatDateIndo(datePart)} pukul ${time}` : formatDateIndo(datePart);
+  };
+
+  const STATUS_LABEL: Record<string, string> = {
+    APPROVED: 'Disetujui (Menunggu Serah Terima)',
+    IN_USE: 'Sedang Dipinjam',
+    RETURNED: 'Selesai / Sudah Dikembalikan',
+  };
+
+  const statusLabel = (loan.status && STATUS_LABEL[loan.status]) || 'Disetujui';
+  const printedAt = new Date();
+  const printedDate = `${printedAt.getDate()} ${
+    ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][printedAt.getMonth()]
+  } ${printedAt.getFullYear()}`;
 
   return (
     <div className="print-letter fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white print:static print:overflow-visible">
@@ -240,12 +277,77 @@ export function OfficialLetterModal({ loan, isOpen, onClose }: Props) {
               </p>
             </div>
           </div>
+
+          {/* Bukti Serah Terima / Penerima Ruangan (CS) */}
+          <div className="mt-4 border-t border-dashed border-slate-300 pt-3 font-sans">
+            <h4 className="text-center text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              Bukti Penerimaan Ruangan / Serah Terima
+            </h4>
+            <p className="text-[10px] text-center text-slate-600 mt-1">
+              Bagian ini diisi dan ditandatangani bersama petugas jaga atau CS Ruangan saat ruang/sarpras diterima.
+            </p>
+
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
+              <div className="flex gap-2">
+                <span className="text-slate-500 w-32 shrink-0">Nomor Tiket</span>
+                <span className="font-mono text-slate-900 font-bold">{loan.ticket_code}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-slate-500 w-32 shrink-0">Status saat dicetak</span>
+                <span className="text-slate-900 font-semibold">{statusLabel}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-slate-500 w-32 shrink-0">Jadwal Pinjam</span>
+                <span className="text-slate-900">
+                  {formatDateIndo(loan.start_date)} {loan.start_time} s/d {formatDateIndo(loan.end_date)} {loan.end_time}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-slate-500 w-32 shrink-0">Tanggal & jam diterima</span>
+                <span className="text-slate-900">
+                  {loan.picked_up_at ? formatDateTimeIndo(loan.picked_up_at) : '..........................'}
+                </span>
+              </div>
+              {loan.returned_at && (
+                <div className="flex gap-2 sm:col-span-2">
+                  <span className="text-slate-500 w-32 shrink-0">Tanggal dikembalikan</span>
+                  <span className="text-slate-900">{formatDateTimeIndo(loan.returned_at)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2 text-[11px] text-slate-800">
+              <p className="text-slate-500">Kondisi saat diterima (coret yang tidak berlaku):</p>
+              <p className="mt-0.5 font-semibold">
+                ☐ Baik &nbsp;&nbsp; ☐ Rusak Ringan &nbsp;&nbsp; ☐ Rusak Berat
+              </p>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-6 text-[11px]">
+              <div className="text-center">
+                <p className="font-bold text-slate-800">Penerima (Pemohon)</p>
+                <p className="text-slate-500">{loan.borrower_name}</p>
+                <div className="h-14" />
+                <p className="border-t border-slate-400 pt-1">Tanda Tangan &amp; Nama</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-slate-800">Petugas / CS Ruangan</p>
+                <p className="text-slate-500">Nama &amp; NIP: ......................................</p>
+                <div className="h-14" />
+                <p className="border-t border-slate-400 pt-1">Tanda Tangan &amp; Nama</p>
+              </div>
+            </div>
+
+            <p className="mt-2 text-[9.5px] text-slate-500 text-center font-sans">
+              Dicetak pada {printedDate} · Dokumen resmi dari sistem SIM-SARPRAS Universitas Bhamada Slawi
+            </p>
+          </div>
         </div>
 
         {/* Modal Bottom Actions */}
         <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-between items-center print:hidden">
           <p className="text-xs text-slate-500">
-            Tunjukkan surat izin digital atau cetakan ini kepada petugas jaga saat pengambilan unit/kunci.
+            Tunjukkan surat ini kepada petugas jaga atau CS Ruangan saat menerima ruang, kunci, atau sarpras.
           </p>
           <div className="flex gap-2">
             <button

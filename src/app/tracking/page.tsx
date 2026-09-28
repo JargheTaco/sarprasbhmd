@@ -53,6 +53,12 @@ interface LoanDetail {
   created_at: string;
 }
 
+/** Surat peminjaman sah untuk dicetak setelah pengajuan disetujui, dan tetap berlaku
+ *  selama sarpras sedang dipakai maupun setelah dikembalikan (untuk bukti ke CS Ruangan). */
+function isLetterPrintable(status: string) {
+  return ['APPROVED', 'IN_USE', 'RETURNED'].includes(status);
+}
+
 function TrackingContent() {
   const searchParams = useSearchParams();
   const initialTicket = searchParams.get('ticket') || '';
@@ -285,16 +291,25 @@ function TrackingContent() {
               </p>
             </div>
 
-            {/* If approved, show Print Certificate button */}
-            {loan.status === 'APPROVED' && (
-              <button
-                type="button"
-                onClick={() => setShowLetterModal(true)}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all cursor-pointer shrink-0"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Cetak Surat Izin Resmi</span>
-              </button>
+            {/* Surat peminjaman bisa dicetak selama pengajuan sudah disetujui */}
+            {isLetterPrintable(loan.status) ? (
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowLetterModal(true)}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Cetak Surat Peminjaman</span>
+                </button>
+                <p className="text-[11px] text-slate-500 text-right max-w-[15rem]">
+                  Bukti resmi untuk CS Ruangan / petugas jaga saat menerima ruang atau sarpras.
+                </p>
+              </div>
+            ) : loan.status === 'REJECTED' || loan.status === 'CANCELLED' ? null : (
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 max-w-xs shrink-0">
+                Surat peminjaman belum bisa dicetak. Tombol cetak muncul setelah pengajuan selesai disetujui.
+              </p>
             )}
           </div>
 
