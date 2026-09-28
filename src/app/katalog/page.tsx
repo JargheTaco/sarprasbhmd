@@ -20,6 +20,7 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  asset_type: string;
   location: string;
   condition: string;
   status: string;
@@ -35,7 +36,7 @@ export default function KatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
   useEffect(() => {
-    let url = '/api/assets?loanable=true&';
+    let url = '/api/assets?asset_type=SARANA_PRASARANA&';
     if (selectedCategory !== 'ALL') url += `category=${selectedCategory}&`;
     if (search.trim()) url += `q=${encodeURIComponent(search.trim())}&`;
 
@@ -57,6 +58,7 @@ export default function KatalogPage() {
     { label: 'Semua Sarpras', val: 'ALL', icon: Layers },
     { label: 'Mobil Kampus', val: 'VEHICLE', icon: Car },
     { label: 'Ruang Kelas & Aula', val: 'ROOM', icon: Building2 },
+    { label: 'Gedung', val: 'BUILDING', icon: Building2 },
     { label: 'Alat Elektronik Pembelajaran', val: 'ELECTRONIC', icon: Tv },
   ];
 

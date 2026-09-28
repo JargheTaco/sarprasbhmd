@@ -20,6 +20,7 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  asset_type: string;
   building: string;
   room: string;
   location: string;
@@ -48,6 +49,7 @@ const CATEGORIES = [
   { value: 'FURNITURE', label: 'Mebel & Perabot' },
   { value: 'VEHICLE', label: 'Kendaraan' },
   { value: 'ROOM', label: 'Ruang & Aula' },
+  { value: 'BUILDING', label: 'Gedung' },
   { value: 'MACHINERY', label: 'Mesin Bengkel / Lab' },
   { value: 'ELECTRICAL', label: 'Kelistrikan & Genset' },
   { value: 'GENERAL', label: 'Inventaris Umum' },
@@ -58,6 +60,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   FURNITURE: 'Mebel',
   VEHICLE: 'Kendaraan',
   ROOM: 'Ruang',
+  BUILDING: 'Gedung',
   MACHINERY: 'Mesin',
   ELECTRICAL: 'Kelistrikan',
   GENERAL: 'Umum',
@@ -67,6 +70,7 @@ const EMPTY_FORM = {
   code: '',
   name: '',
   category: 'ELECTRONIC',
+  asset_type: 'INVENTARIS',
   building: '',
   room: '',
   location: '',
@@ -96,6 +100,7 @@ export default function InventarisPage() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedBuilding, setSelectedBuilding] = useState('ALL');
+  const [selectedAssetType, setSelectedAssetType] = useState('ALL');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
 
@@ -117,12 +122,14 @@ export default function InventarisPage() {
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [importBuilding, setImportBuilding] = useState('');
   const [importRoom, setImportRoom] = useState('');
+  const [importAssetType, setImportAssetType] = useState('INVENTARIS');
 
   const fetchAssets = async () => {
     setLoading(true);
     try {
       let url = '/api/assets?';
       if (selectedCategory !== 'ALL') url += `category=${selectedCategory}&`;
+      if (selectedAssetType !== 'ALL') url += `asset_type=${selectedAssetType}&`;
       if (selectedStatus !== 'ALL') url += `status=${selectedStatus}&`;
       if (selectedBuilding !== 'ALL') url += `building=${encodeURIComponent(selectedBuilding)}&`;
       if (search.trim()) url += `q=${encodeURIComponent(search.trim())}&`;
@@ -140,7 +147,7 @@ export default function InventarisPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAssets();
-  }, [selectedCategory, selectedStatus, selectedBuilding, search]);
+  }, [selectedCategory, selectedAssetType, selectedStatus, selectedBuilding, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -189,6 +196,7 @@ export default function InventarisPage() {
       code: asset.code,
       name: asset.name,
       category: asset.category,
+      asset_type: asset.asset_type || 'INVENTARIS',
       building: asset.building || '',
       room: asset.room || '',
       location: asset.location || '',
@@ -288,6 +296,7 @@ export default function InventarisPage() {
       body.append('file', file);
       body.append('building', importBuilding);
       body.append('room', importRoom);
+      body.append('asset_type', importAssetType);
       const res = await fetch('/api/assets/import', { method: 'POST', body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal mengimpor inventaris');
@@ -316,7 +325,7 @@ export default function InventarisPage() {
             Arsip & Master Data Inventaris
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pengelolaan seluruh aset Universitas Bhamada Slawi — mebel, elektronik, kendaraan, mesin, dan kelistrikan.
+          Pengelolaan seluruh aset Universitas Bhamada Slawi — pisahkan aset tetap dari sarana prasarana yang dapat dipinjam.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -383,7 +392,7 @@ export default function InventarisPage() {
 
       {/* Import CSV helper */}
       {canEdit && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input
             type="text"
             placeholder="Gedung target impor CSV (opsional)"
@@ -391,6 +400,14 @@ export default function InventarisPage() {
             onChange={e => setImportBuilding(e.target.value)}
             className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
           />
+          <select
+            value={importAssetType}
+            onChange={e => setImportAssetType(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+          >
+            <option value="INVENTARIS">Impor ke Inventaris Aset</option>
+            <option value="SARANA_PRASARANA">Impor ke Sarana Prasarana</option>
+          </select>
           <input
             type="text"
             placeholder="Ruang target impor CSV (opsional)"
@@ -419,6 +436,15 @@ export default function InventarisPage() {
           className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+        <select
+          value={selectedAssetType}
+          onChange={e => setSelectedAssetType(e.target.value)}
+          className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="ALL">Semua Penyimpanan</option>
+          <option value="INVENTARIS">Inventaris Aset</option>
+          <option value="SARANA_PRASARANA">Sarana Prasarana (Dapat Dipinjam)</option>
         </select>
         <select
           value={selectedStatus}
@@ -510,6 +536,7 @@ export default function InventarisPage() {
                                   <th className="px-4 py-2 text-left">No. Inventaris</th>
                                   <th className="px-4 py-2 text-left">Nama Barang</th>
                                   <th className="px-4 py-2 text-center">Kategori</th>
+                                  <th className="px-4 py-2 text-center">Disimpan di</th>
                                   <th className="px-4 py-2 text-center">Jml</th>
                                   <th className="px-4 py-2 text-center">Sumber Dana</th>
                                   <th className="px-4 py-2 text-center">Th. Beli</th>
@@ -527,6 +554,11 @@ export default function InventarisPage() {
                                     <td className="px-4 py-2.5 text-center">
                                       <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
                                         {CATEGORY_LABEL[asset.category] || asset.category}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-2.5 text-center">
+                                      <span className={asset.asset_type === 'SARANA_PRASARANA' ? 'bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full' : 'bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full'}>
+                                        {asset.asset_type === 'SARANA_PRASARANA' ? 'Dapat dipinjam' : 'Inventaris'}
                                       </span>
                                     </td>
                                     <td className="px-4 py-2.5 text-center font-bold text-slate-700">{asset.capacity || 1}</td>
@@ -581,7 +613,7 @@ export default function InventarisPage() {
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl my-8">
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900">
-                {editingAsset ? `Perbarui Data: ${editingAsset.name}` : 'Tambah Aset / Inventaris Baru'}
+                {editingAsset ? `Perbarui Data: ${editingAsset.name}` : 'Tambah Aset Baru'}
               </h3>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-sm font-bold">
                 ✕ Tutup
@@ -621,11 +653,27 @@ export default function InventarisPage() {
                     <option value="FURNITURE">Mebel & Perabot (Meja, Kursi, Rak)</option>
                     <option value="VEHICLE">Kendaraan Dinas</option>
                     <option value="ROOM">Ruang Kelas & Aula</option>
+                    <option value="BUILDING">Gedung</option>
                     <option value="MACHINERY">Mesin Bengkel / Lab</option>
                     <option value="ELECTRICAL">Kelistrikan & Genset</option>
                     <option value="GENERAL">Inventaris Umum</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Simpan ke Katalog *</label>
+                <select
+                  value={formData.asset_type}
+                  onChange={e => setFormData({ ...formData, asset_type: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="INVENTARIS">Inventaris Aset (tetap / tidak dipinjam)</option>
+                  <option value="SARANA_PRASARANA">Sarana Prasarana (dapat dipinjam)</option>
+                </select>
+                <p className="text-[10px] text-slate-500">
+                  Aset mobil, ruang, gedung, dan peralatan pinjaman dapat dipilih sebagai Sarana Prasarana.
+                </p>
               </div>
 
               {/* Row 2: Nama Barang */}

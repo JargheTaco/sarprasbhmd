@@ -39,9 +39,9 @@ interface LoanDetail {
   status: string;
   staff_notes?: string;
   head_notes?: string;
-  staff_checklist?: string;
-  head_checklist?: string;
-  return_checklist?: string;
+  staff_checklist?: string | Record<string, unknown>;
+  head_checklist?: string | Record<string, unknown>;
+  return_checklist?: string | Record<string, unknown>;
   staff_verified_at?: string;
   staff_verified_by?: string;
   head_approved_at?: string;
@@ -70,12 +70,21 @@ function TrackingContent() {
 
     try {
       const res = await fetch(`/api/loans/${encodeURIComponent(code.trim())}`);
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: { loan?: LoanDetail; error?: string } = {};
+      try {
+        data = JSON.parse(responseText) as { loan?: LoanDetail; error?: string };
+      } catch {
+        throw new Error('Server mengembalikan respons yang tidak valid. Silakan coba lagi.');
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Data tiket tidak ditemukan');
       }
 
+      if (!data.loan) {
+        throw new Error('Data tiket tidak ditemukan');
+      }
       setLoan(data.loan);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal melacak tiket';
@@ -88,6 +97,7 @@ function TrackingContent() {
 
   useEffect(() => {
     if (initialTicket) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchLoan(initialTicket);
     }
   }, [initialTicket]);
@@ -97,10 +107,25 @@ function TrackingContent() {
     fetchLoan(inputTicket);
   };
 
-  // Parse checklists
-  const staffCheck = loan?.staff_checklist ? JSON.parse(loan.staff_checklist) : null;
-  const headCheck = loan?.head_checklist ? JSON.parse(loan.head_checklist) : null;
-  const returnCheck = loan?.return_checklist ? JSON.parse(loan.return_checklist) : null;
+  const parseChecklist = (checklist?: string | Record<string, unknown>) => {
+    if (!checklist) return null;
+    if (typeof checklist !== 'string') return checklist;
+    try {
+      return JSON.parse(checklist) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  };
+
+  const checklistNote = (checklist: Record<string, unknown> | null) => {
+    const note = checklist?.notes;
+    if (typeof note === 'string' || typeof note === 'number') return String(note);
+    if (typeof note === 'boolean') return note ? 'Ya' : 'Tidak';
+    return '-';
+  };
+
+  const staffCheck = parseChecklist(loan?.staff_checklist);
+  const headCheck = parseChecklist(loan?.head_checklist);
 
   // Timeline Step Status Helper
   const getStepStatus = (stepIndex: number) => {
@@ -448,7 +473,7 @@ function TrackingContent() {
                   </div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2">
                     <span className="font-bold text-slate-700 block mb-1">Catatan Staff Sarpras:</span>
-                    <p className="text-slate-600">{loan.staff_notes || staffCheck.notes || '-'}</p>
+                    <p className="text-slate-600">{loan.staff_notes || checklistNote(staffCheck)}</p>
                     <p className="text-[10px] text-slate-400 mt-2">
                       Diverifikasi oleh: {loan.staff_verified_by || 'Staff Sarpras'} pada {loan.staff_verified_at}
                     </p>
@@ -495,7 +520,7 @@ function TrackingContent() {
                   </div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2">
                     <span className="font-bold text-slate-700 block mb-1">Disposisi / Catatan Kepala:</span>
-                    <p className="text-slate-600">{loan.head_notes || headCheck.notes || '-'}</p>
+                    <p className="text-slate-600">{loan.head_notes || checklistNote(headCheck)}</p>
                     <p className="text-[10px] text-slate-400 mt-2">
                       Disetujui oleh: {loan.head_approved_by || 'Dr. Ir. Hendra Wijaya, M.T.'} pada {loan.head_approved_at}
                     </p>

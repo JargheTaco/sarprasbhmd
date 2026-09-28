@@ -23,6 +23,7 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  asset_type: string;
   location: string;
   condition: string;
   status: string;
@@ -59,7 +60,7 @@ export default function HomePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/assets?status=TERSEDIA').then((res) => res.json()),
+      fetch('/api/assets?asset_type=SARANA_PRASARANA&status=TERSEDIA').then((res) => res.json()),
       fetch('/api/stats').then((res) => res.json()),
     ])
       .then(([assetsData, statsData]) => {

@@ -380,6 +380,8 @@ async function seed() {
       code: item.code,
       name: item.name,
       category: item.category,
+      // Data inventaris Bhamada adalah aset tetap, bukan barang katalog peminjaman.
+      asset_type: 'INVENTARIS',
       building: item.building,
       room: item.room,
       location: item.location,

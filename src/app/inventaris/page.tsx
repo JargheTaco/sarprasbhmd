@@ -16,6 +16,7 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  asset_type: string;
   building: string;
   room: string;
   location: string;
@@ -58,8 +59,7 @@ export default function InventarisPublikPage() {
   const [kirMode, setKirMode] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetch('/api/assets?')
+    fetch('/api/assets?asset_type=INVENTARIS')
       .then(res => res.json())
       .then(data => setAssets(data?.assets || []))
       .catch(() => setAssets([]))
@@ -77,11 +77,6 @@ export default function InventarisPublikPage() {
       new Set(assets.filter(a => a.building === selectedBuilding).map(a => a.room).filter(Boolean))
     ).sort();
   }, [assets, selectedBuilding]);
-
-  // Reset room when building changes
-  useEffect(() => {
-    setSelectedRoom('ALL');
-  }, [selectedBuilding]);
 
   const filtered = useMemo(() => {
     return assets.filter(a => {
@@ -166,7 +161,10 @@ export default function InventarisPublikPage() {
 
           <select
             value={selectedBuilding}
-            onChange={e => setSelectedBuilding(e.target.value)}
+            onChange={e => {
+              setSelectedBuilding(e.target.value);
+              setSelectedRoom('ALL');
+            }}
             className="px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             <option value="ALL">— Pilih Gedung —</option>

@@ -1,3 +1,4 @@
+import { getSuggestedAssetType, isAssetType } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -43,6 +44,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       status,
       specs,
       capacity,
+      asset_type,
       purchase_year,
       purchase_date,
       purchase_price,
@@ -60,15 +62,25 @@ export async function PUT(req: NextRequest, { params }: Params) {
       );
     }
 
+    if (asset_type !== undefined && !isAssetType(asset_type)) {
+      return NextResponse.json({ error: 'Pilihan simpan aset tidak valid' }, { status: 400 });
+    }
+
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('assets')
-      .select('id')
+      .select('id, asset_type')
       .eq('id', id)
       .maybeSingle();
     if (existingError) throw existingError;
     if (!existing) {
       return NextResponse.json({ error: 'Aset tidak ditemukan' }, { status: 404 });
     }
+
+    const assetType = isAssetType(asset_type)
+      ? asset_type
+      : isAssetType(existing?.asset_type)
+        ? existing.asset_type
+        : getSuggestedAssetType(category);
 
     const { error: updateError } = await supabaseAdmin.from('assets').update({
       name,
@@ -80,6 +92,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       status,
       specs: specs || null,
       capacity: Number(capacity) || 1,
+      asset_type: assetType,
       purchase_year: Number(purchase_year) || new Date().getFullYear(),
       purchase_date: purchase_date || null,
       purchase_price: Number(purchase_price) || 0,

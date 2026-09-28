@@ -1,3 +1,4 @@
+import { ASSET_TYPES, getSuggestedAssetType, isAssetType } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -6,16 +7,26 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
+    const assetType = searchParams.get('asset_type');
     const statusFilter = searchParams.get('status');
     const building = searchParams.get('building');
     const room = searchParams.get('room');
     const search = searchParams.get('q');
     const loanableOnly = searchParams.get('loanable') === 'true';
 
+    if (assetType && assetType !== 'ALL' && !isAssetType(assetType)) {
+      return NextResponse.json({ error: 'Jenis katalog aset tidak valid' }, { status: 400 });
+    }
+
+    const effectiveAssetType = loanableOnly ? ASSET_TYPES.SARANA_PRASARANA : assetType;
     let query = supabaseAdmin.from('assets').select('*');
 
     if (category && category !== 'ALL') {
       query = query.eq('category', category);
+    }
+
+    if (effectiveAssetType && effectiveAssetType !== 'ALL') {
+      query = query.eq('asset_type', effectiveAssetType);
     }
 
     if (statusFilter && statusFilter !== 'ALL') {
@@ -37,15 +48,7 @@ export async function GET(req: NextRequest) {
     const { data: fetchedAssets, error } = await query.order('name', { ascending: true });
     if (error) throw error;
 
-    const assets = loanableOnly
-      ? (fetchedAssets || []).filter((asset) => {
-          if (asset.category === 'VEHICLE' || asset.category === 'ROOM') return true;
-          if (asset.category !== 'ELECTRONIC') return false;
-
-          const searchableText = `${asset.name} ${asset.location} ${asset.specs}`.toLowerCase();
-          return searchableText.includes('sarpras') || searchableText.includes('proyektor') || searchableText.includes('projector') || searchableText.includes('kabel');
-        })
-      : fetchedAssets;
+    const assets = fetchedAssets || [];
     return NextResponse.json({ success: true, assets });
   } catch (err: unknown) {
     console.error('Fetch assets error:', err);
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest) {
       status,
       specs,
       capacity,
+      asset_type,
       purchase_year,
       purchase_date,
       purchase_price,
@@ -91,6 +95,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    if (asset_type !== undefined && !isAssetType(asset_type)) {
+      return NextResponse.json({ error: 'Pilihan simpan aset tidak valid' }, { status: 400 });
+    }
+
+    const assetType = isAssetType(asset_type) ? asset_type : getSuggestedAssetType(category);
 
     // Check code uniqueness
     const { data: existing, error: existingError } = await supabaseAdmin
@@ -121,6 +131,7 @@ export async function POST(req: NextRequest) {
       status: status || 'TERSEDIA',
       specs: specs || null,
       capacity: Number(capacity) || 1,
+      asset_type: assetType,
       purchase_year: Number(purchase_year) || new Date().getFullYear(),
       purchase_date: purchase_date || null,
       purchase_price: Number(purchase_price) || 0,

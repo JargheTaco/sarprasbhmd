@@ -1,3 +1,4 @@
+import { isLoanableAsset } from '@/lib/assetTypes';
 import { assertSupabaseConfigured, supabaseAdmin, supabaseConfigErrorMessage } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -127,12 +128,13 @@ export async function POST(req: NextRequest) {
       specs: string | null;
       condition: string;
       status: string;
+      asset_type: string | null;
     }
     let asset: AssetCheck | null = null;
     if (!isRoomLoan) {
       const { data: selectedAsset, error: assetError } = await supabaseAdmin
         .from('assets')
-        .select('id, name, category, location, specs, condition, status')
+        .select('id, name, category, location, specs, condition, status, asset_type')
         .eq('id', asset_id)
         .maybeSingle<AssetCheck>();
       if (assetError) throw assetError;
@@ -141,20 +143,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Sarpras / Aset yang dipilih tidak ditemukan' }, { status: 404 });
       }
 
-      const searchableText = `${asset.name} ${asset.location} ${asset.specs || ''}`.toLowerCase();
-      const isLoanableAsset =
-        asset.category === 'VEHICLE' ||
-        asset.category === 'ROOM' ||
-        (asset.category === 'ELECTRONIC' && (
-          searchableText.includes('sarpras') ||
-          searchableText.includes('proyektor') ||
-          searchableText.includes('projector') ||
-          searchableText.includes('kabel')
-        ));
-
-      if (!isLoanableAsset) {
+      if (!isLoanableAsset(asset)) {
         return NextResponse.json(
-          { error: 'Aset ini merupakan inventaris ruangan dan tidak tersedia untuk peminjaman.' },
+          { error: 'Aset ini merupakan Inventaris Aset dan tidak tersedia untuk peminjaman.' },
           { status: 400 }
         );
       }
@@ -174,7 +165,7 @@ export async function POST(req: NextRequest) {
     if (additionalAssetIds.length > 0) {
       const { data: selectedAssets, error: additionalError } = await supabaseAdmin
         .from('assets')
-        .select('id, code, name, category, location, specs, condition, status')
+        .select('id, code, name, category, location, specs, condition, status, asset_type')
         .in('id', additionalAssetIds)
         .returns<AdditionalAsset[]>();
       if (additionalError) throw additionalError;
@@ -183,7 +174,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Salah satu peralatan tambahan tidak ditemukan' }, { status: 404 });
       }
       const unavailableAsset = additionalAssets.find((selected) =>
-        selected.status !== 'TERSEDIA' || selected.condition === 'RUSAK_BERAT' || selected.category !== 'ELECTRONIC'
+        selected.status !== 'TERSEDIA' || selected.condition === 'RUSAK_BERAT' || !isLoanableAsset(selected)
       );
       if (unavailableAsset) {
         return NextResponse.json(

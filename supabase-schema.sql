@@ -15,6 +15,7 @@ create table if not exists assets (
   code text unique not null,
   name text not null,
   category text not null,
+  asset_type text not null default 'INVENTARIS',
   building text not null default 'Belum Ditentukan',
   room text not null default 'Belum Ditentukan',
   location text not null,
@@ -42,6 +43,20 @@ alter table assets add column if not exists depreciation_previous numeric(14, 2)
 alter table assets add column if not exists depreciation_current numeric(14, 2) not null default 0;
 alter table assets add column if not exists book_value numeric(14, 2) not null default 0;
 alter table assets add column if not exists funding_source text;
+alter table assets add column if not exists asset_type text not null default 'INVENTARIS';
+
+update assets
+set asset_type = 'SARANA_PRASARANA'
+where asset_type = 'INVENTARIS'
+  and (
+    category in ('VEHICLE', 'ROOM', 'BUILDING')
+    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%sarpras%'
+    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%proyektor%'
+    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%projector%'
+    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%kabel%'
+  );
+
+create index if not exists idx_assets_asset_type_status on assets(asset_type, status);
 
 alter table users drop constraint if exists users_role_check;
 alter table users add constraint users_role_check check (role in ('ADMIN', 'STAFF_SARPRAS', 'KEPALA_SARPRAS', 'KEPALA_ADMIN_UMUM'));
@@ -149,6 +164,14 @@ values
   ('ast_kls_1', 'KLS-001', 'Genset Silent Diesel 50 kVA Cummins Power', 'ELECTRICAL', 'Rumah Daya & Kelistrikan Barat', 'BAIK', 'TERSEDIA', 'Output 40 kW / 50 kVA, 3 Phase 380V/220V, Panel ATS Otomatis, Backup Utama Gedung Rektorat & Server', 1, 2021),
   ('ast_kls_2', 'KLS-002', 'Panel Distribusi Listrik Utama (LVMDP) Gedung Sains', 'ELECTRICAL', 'Ruang Panel Lt. Basement Gedung B', 'BAIK', 'TERSEDIA', 'MCCB 630A Schneider, Kapasitor Bank 150 kVAR, Pengecekan Rutin Suhu Busbar', 1, 2020)
 on conflict (id) do nothing;
+
+update assets
+set asset_type = 'SARANA_PRASARANA'
+where category in ('VEHICLE', 'ROOM', 'BUILDING')
+   or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%sarpras%'
+   or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%proyektor%'
+   or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%projector%'
+   or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%kabel%';
 
 insert into loan_requests (id, ticket_code, borrower_name, borrower_id, borrower_role, borrower_phone, borrower_email, asset_id, start_date, start_time, end_date, end_time, purpose, destination, driver_needed, status, staff_notes, staff_checklist, staff_verified_at, staff_verified_by, created_at)
 values

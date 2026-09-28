@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       .from('loan_request_items')
       .select('assets(name, code, category, location, specs, condition)')
       .eq('loan_request_id', loan.id);
-    if (itemError) throw itemError;
+    if (itemError && itemError.code !== '42P01') throw itemError;
     const itemAssets = (itemRows || []).map((item) => item.assets?.[0]).filter(Boolean);
     loan.asset_items = [
       ...(loan.assets ? [loan.assets] : []),

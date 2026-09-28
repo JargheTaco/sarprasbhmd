@@ -118,8 +118,9 @@ export default function PerawatanPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-  }, [selectedCategory, search]);
+  }, [selectedCategory, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredRecords = records.filter((r) => {
     if (activeTab === 'PREVENTIVE') return r.type === 'PREVENTIVE' && r.status !== 'COMPLETED';

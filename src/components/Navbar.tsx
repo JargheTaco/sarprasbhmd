@@ -35,8 +35,8 @@ export function Navbar() {
 
   const navLinks = [
     { name: 'Beranda', href: '/', icon: Building2 },
-    { name: 'Katalog', href: '/katalog', icon: Car },
-    { name: 'Inventaris', href: '/inventaris', icon: ClipboardList },
+    { name: 'Katalog Pinjaman', href: '/katalog', icon: Car },
+    { name: 'Inventaris Aset', href: '/inventaris', icon: ClipboardList },
     { name: 'Jadwal', href: '/jadwal', icon: Calendar },
     { name: 'Lacak Tiket', href: '/tracking', icon: Search },
   ];

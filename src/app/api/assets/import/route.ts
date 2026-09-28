@@ -1,3 +1,4 @@
+import { ASSET_TYPES, isAssetType } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -105,6 +106,11 @@ export async function POST(request: NextRequest) {
     }
     const defaultBuilding = String(formData.get('building') || '').trim();
     const defaultRoom = String(formData.get('room') || '').trim();
+    const requestedAssetType = String(formData.get('asset_type') || ASSET_TYPES.INVENTARIS).trim();
+
+    if (!isAssetType(requestedAssetType)) {
+      return NextResponse.json({ error: 'Pilihan simpan aset tidak valid.' }, { status: 400 });
+    }
 
     const rows = parseCsv(await file.text());
     if (rows.length < 2) {
@@ -192,6 +198,7 @@ export async function POST(request: NextRequest) {
         code,
         name,
         category: column(row, 'kategori', 'category') || 'ELECTRONIC',
+        asset_type: requestedAssetType,
         building,
         room,
         location,

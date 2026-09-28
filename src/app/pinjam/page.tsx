@@ -19,12 +19,22 @@ interface Asset {
   code: string;
   name: string;
   category: string;
+  asset_type: string;
   location: string;
   condition: string;
   status: string;
   specs: string;
   capacity: number;
 }
+
+const FACILITY_CATEGORIES = ['ROOM', 'BUILDING'];
+
+const CATEGORY_TABS = [
+  { label: 'Peralatan Portabel Sarpras', val: 'ELECTRONIC' },
+  { label: 'Mobil Kampus', val: 'VEHICLE' },
+  { label: 'Ruang Kelas & Aula', val: 'ROOM' },
+  { label: 'Gedung', val: 'BUILDING' },
+];
 
 function PinjamFormContent() {
   const searchParams = useSearchParams();
@@ -36,6 +46,8 @@ function PinjamFormContent() {
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>(preselectedAssetId ? [preselectedAssetId] : []);
   const [roomBuilding, setRoomBuilding] = useState('');
   const [roomName, setRoomName] = useState('');
+  const isFacilityCategory = FACILITY_CATEGORIES.includes(selectedCategory);
+  const isBuildingCategory = selectedCategory === 'BUILDING';
   
   // Form fields
   const [formData, setFormData] = useState({
@@ -60,7 +72,7 @@ function PinjamFormContent() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetch('/api/assets?loanable=true&status=TERSEDIA')
+    fetch('/api/assets?asset_type=SARANA_PRASARANA&status=TERSEDIA')
       .then((res) => res.json())
       .then((data) => {
         if (data?.assets) {
@@ -96,12 +108,16 @@ function PinjamFormContent() {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (selectedCategory === 'ROOM' && (!roomBuilding || !roomName.trim())) {
-      setErrorMsg('Silakan pilih gedung dan isi nama atau nomor ruangan yang ingin dipinjam.');
+    if (isFacilityCategory && (!roomBuilding || !roomName.trim())) {
+      setErrorMsg(
+        isBuildingCategory
+          ? 'Silakan pilih gedung dan isi nama gedung atau area yang ingin dipinjam.'
+          : 'Silakan pilih gedung dan isi nama atau nomor ruangan yang ingin dipinjam.'
+      );
       return;
     }
 
-    if (selectedCategory !== 'ROOM' && selectedAssetIds.length === 0) {
+    if (!isFacilityCategory && selectedAssetIds.length === 0) {
       setErrorMsg('Silakan pilih minimal satu sarana prasarana yang ingin dipinjam.');
       return;
     }
@@ -119,10 +135,10 @@ function PinjamFormContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          asset_id: selectedCategory === 'ROOM' ? null : selectedAssetIds[0],
+          asset_id: isFacilityCategory ? null : selectedAssetIds[0],
           asset_ids: selectedAssetIds,
-          room_building: selectedCategory === 'ROOM' ? roomBuilding : null,
-          room_name: selectedCategory === 'ROOM' ? roomName.trim() : null,
+          room_building: isFacilityCategory ? roomBuilding : null,
+          room_name: isFacilityCategory ? roomName.trim() : null,
         }),
       });
 
@@ -269,18 +285,19 @@ function PinjamFormContent() {
 
             {/* Category Filter Tabs */}
             <div className="flex flex-wrap gap-2">
-              {[
-                { label: 'Peralatan Portabel Sarpras', val: 'ELECTRONIC' },
-                { label: 'Mobil Kampus', val: 'VEHICLE' },
-                { label: 'Ruang Kelas & Aula', val: 'ROOM' },
-              ].map((tab) => (
+              {CATEGORY_TABS.map((tab) => (
                 <button
                   type="button"
                   key={tab.val}
                   onClick={() => {
+                    const nextIsFacility = FACILITY_CATEGORIES.includes(tab.val);
                     setSelectedCategory(tab.val);
-                    setSelectedAssetId(tab.val === 'ROOM' ? '' : selectedAssetIds[0] || '');
-                    if (tab.val === 'ROOM') setSelectedAssetIds([]);
+                    if (nextIsFacility) {
+                      setSelectedAssetId('');
+                      setSelectedAssetIds([]);
+                    } else {
+                      setSelectedAssetId(selectedAssetIds[0] || '');
+                    }
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     selectedCategory === tab.val
@@ -293,7 +310,7 @@ function PinjamFormContent() {
               ))}
             </div>
 
-            {selectedCategory === 'ROOM' ? (
+            {isFacilityCategory ? (
               <div className="space-y-4 rounded-xl bg-blue-50 border border-blue-100 p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -311,18 +328,26 @@ function PinjamFormContent() {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Nama / Nomor Ruangan *</label>
+                  <label className="text-xs font-bold text-slate-700">
+                    {isBuildingCategory ? 'Nama / Nomor Gedung atau Area *' : 'Nama / Nomor Ruangan *'}
+                  </label>
                   <input
                     required
                     type="text"
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
-                    placeholder="Contoh: E2.9, Lab Komputer, atau Aula"
+                    placeholder={
+                      isBuildingCategory
+                        ? 'Contoh: Gedung Serbaguna, Area Parkir Basement'
+                        : 'Contoh: E2.9, Lab Komputer, atau Aula'
+                    }
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
                 <p className="sm:col-span-2 text-xs text-blue-800">
-                  Pilih gedung A-L lalu tulis ruang yang diperlukan. Ruangan tidak perlu dibuat satu per satu sebagai aset inventaris.
+                  {isBuildingCategory
+                    ? 'Pilih gedung A-L lalu tulis nama gedung atau area yang akan dipakai. Gedung tidak perlu dibuat satu per satu sebagai aset katalog.'
+                    : 'Pilih gedung A-L lalu tulis ruang yang diperlukan. Ruangan tidak perlu dibuat satu per satu sebagai aset inventaris.'}
                 </p>
                 </div>
 

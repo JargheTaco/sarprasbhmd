@@ -17,10 +17,10 @@ SIM-SARPRAS adalah sistem informasi pengelolaan sarana dan prasarana Universitas
 
 ### Untuk pemohon dan publik
 
-- Melihat katalog sarana prasarana seperti mobil kampus, ruang kelas, aula, auditorium, alat elektronik, dan fasilitas lain.
+- Melihat katalog sarana prasarana yang dapat dipinjam seperti mobil kampus, ruang kelas, aula, auditorium, alat elektronik, dan fasilitas lain.
 - Mengajukan peminjaman tanpa membuat akun atau login.
 - Memilih aset, tanggal dan waktu penggunaan, tujuan, lokasi, serta kebutuhan pengemudi.
-- Mengajukan peminjaman ruang dengan memilih gedung dan nama atau nomor ruangan.
+- Mengajukan peminjaman ruang atau gedung dengan memilih gedung dan nama/nomor ruangan atau area.
 - Mendapatkan kode tiket unik setelah pengajuan berhasil dikirim.
 - Melacak status permohonan melalui kode tiket.
 - Melihat detail tahapan verifikasi Staff Sarpras, persetujuan Kepala Sarpras, serah terima, penggunaan, dan pengembalian.
@@ -39,8 +39,19 @@ Petugas login melalui `/login` untuk membuka dashboard manajemen. Fitur yang ter
 - Memberikan persetujuan akhir sebagai Kepala Sarpras melalui checklist.
 - Mencatat serah terima, penggunaan aset, dan pengembalian.
 - Mengelola data inventaris aset dan informasi kondisi aset.
+- Memilih apakah aset disimpan sebagai Inventaris Aset (tetap) atau Sarana Prasarana (dapat dipinjam) saat menambah, mengubah, atau mengimpor aset.
+- Memfilter arsip aset berdasarkan kategori dan jenis katalog.
 - Membuat serta memantau tiket perawatan aset elektronik, mesin, dan kelistrikan.
 - Mengelola akun pengguna jika login sebagai Administrator.
+
+## Pemisahan Inventaris Aset dan Sarana Prasarana
+
+Setiap aset pada tabel `assets` memiliki kolom `asset_type` dengan dua nilai:
+
+- `INVENTARIS` — aset tetap milik kampus (meja, kursi, AC, instalasi listrik) yang dikelola lewat portal `/inventaris` dan dashboard Inventaris.
+- `SARANA_PRASARANA` — barang atau fasilitas yang bisa dipinjam, tampil di katalog `/katalog` dan form `/pinjam`.
+
+Nilai ini dapat diatur dari form aset, form impor CSV, dan API. Endpoint `GET /api/assets` menerima filter `asset_type=INVENTARIS` atau `asset_type=SARANA_PRASARANA` (filter lama `loanable=true` masih didukung sebagai alias). Aset tanpa nilai eksplisit memakai saranan otomatis: kategori `VEHICLE`, `ROOM`, dan `BUILDING` masuk ke Sarana Prasarana, selain itu menjadi Inventaris Aset.
 
 ## Alur Peminjaman
 
