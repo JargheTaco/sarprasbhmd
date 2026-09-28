@@ -1,12 +1,12 @@
 'use client';
 
 import {
-    BookOpen,
-    Building2,
-    ClipboardList,
-    DoorOpen,
-    Printer,
-    Search,
+  BookOpen,
+  Building2,
+  ClipboardList,
+  DoorOpen,
+  Printer,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -302,7 +302,7 @@ export default function InventarisPublikPage() {
               <div>
                 <p className="font-semibold text-slate-600 mb-16">Pjs. Kasubag Sarpras</p>
                 <div className="border-b border-slate-400 mb-1"></div>
-                <p className="font-bold text-slate-900">Dwipa Ari Putra, S.Kom</p>
+                <p className="font-bold text-slate-900">null</p>
                 <p className="text-slate-500 text-[10px] mt-0.5">Pj. Kasubag Sarana & Prasarana</p>
               </div>
             </div>
