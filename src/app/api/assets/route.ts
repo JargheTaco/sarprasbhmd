@@ -1,4 +1,11 @@
-import { ASSET_TYPES, getSuggestedAssetType, isAssetType } from '@/lib/assetTypes';
+import {
+  ASSET_TYPES,
+  getSuggestedAssetType,
+  isAssetType,
+  isMissingAssetTypeColumn,
+  resolveAssetType,
+  withoutAssetType,
+} from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,33 +26,49 @@ export async function GET(req: NextRequest) {
     }
 
     const effectiveAssetType = loanableOnly ? ASSET_TYPES.SARANA_PRASARANA : assetType;
-    let query = supabaseAdmin.from('assets').select('*');
+    const needsAssetTypeFilter = Boolean(effectiveAssetType && effectiveAssetType !== 'ALL');
 
-    if (category && category !== 'ALL') {
-      query = query.eq('category', category);
+    const buildQuery = (withAssetTypeFilter: boolean) => {
+      let query = supabaseAdmin.from('assets').select('*');
+
+      if (category && category !== 'ALL') {
+        query = query.eq('category', category);
+      }
+
+      if (withAssetTypeFilter && needsAssetTypeFilter) {
+        query = query.eq('asset_type', effectiveAssetType as string);
+      }
+
+      if (statusFilter && statusFilter !== 'ALL') {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (building && building !== 'ALL') {
+        query = query.eq('building', building);
+      }
+
+      if (room && room !== 'ALL') {
+        query = query.eq('room', room);
+      }
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,building.ilike.%${search}%,room.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
+      }
+
+      return query;
+    };
+
+    const { data: fetchedAssets, error } = await buildQuery(true).order('name', { ascending: true });
+
+    // Database lama belum menjalankan migrasi kolom asset_type: filter dijalankan di memori.
+    if (error && needsAssetTypeFilter && isMissingAssetTypeColumn(error)) {
+      console.warn('Kolom assets.asset_type belum tersedia, memakai filter kategori/kata kunci.');
+      const fallback = await buildQuery(false).order('name', { ascending: true });
+      if (fallback.error) throw fallback.error;
+      const assets = (fallback.data || []).filter((asset) => resolveAssetType(asset) === effectiveAssetType);
+      return NextResponse.json({ success: true, assets, assetTypeFallback: true });
     }
 
-    if (effectiveAssetType && effectiveAssetType !== 'ALL') {
-      query = query.eq('asset_type', effectiveAssetType);
-    }
-
-    if (statusFilter && statusFilter !== 'ALL') {
-      query = query.eq('status', statusFilter);
-    }
-
-    if (building && building !== 'ALL') {
-      query = query.eq('building', building);
-    }
-
-    if (room && room !== 'ALL') {
-      query = query.eq('room', room);
-    }
-
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,building.ilike.%${search}%,room.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
-    }
-
-    const { data: fetchedAssets, error } = await query.order('name', { ascending: true });
     if (error) throw error;
 
     const assets = fetchedAssets || [];
@@ -119,7 +142,7 @@ export async function POST(req: NextRequest) {
     const id = `ast_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
 
-    const { error: insertError } = await supabaseAdmin.from('assets').insert({
+    const payload = {
       id,
       code: code.toUpperCase(),
       name,
@@ -141,7 +164,13 @@ export async function POST(req: NextRequest) {
       book_value: Number(book_value) || 0,
       funding_source: funding_source || 'YPTSH',
       created_at: now,
-    });
+    };
+
+    let { error: insertError } = await supabaseAdmin.from('assets').insert(payload);
+    if (insertError && isMissingAssetTypeColumn(insertError)) {
+      const retry = await supabaseAdmin.from('assets').insert(withoutAssetType(payload));
+      insertError = retry.error;
+    }
     if (insertError) throw insertError;
 
     const { data: newAsset, error: fetchError } = await supabaseAdmin

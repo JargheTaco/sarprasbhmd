@@ -1,4 +1,4 @@
-import { isLoanableAsset } from '@/lib/assetTypes';
+import { isLoanableAsset, isMissingAssetTypeColumn } from '@/lib/assetTypes';
 import { assertSupabaseConfigured, supabaseAdmin, supabaseConfigErrorMessage } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -128,17 +128,29 @@ export async function POST(req: NextRequest) {
       specs: string | null;
       condition: string;
       status: string;
-      asset_type: string | null;
+      asset_type?: string | null;
     }
+    const assetColumns = 'id, name, category, location, specs, condition, status, asset_type';
+    const assetColumnsLegacy = 'id, name, category, location, specs, condition, status';
     let asset: AssetCheck | null = null;
     if (!isRoomLoan) {
-      const { data: selectedAsset, error: assetError } = await supabaseAdmin
+      const selected = await supabaseAdmin
         .from('assets')
-        .select('id, name, category, location, specs, condition, status, asset_type')
+        .select(assetColumns)
         .eq('id', asset_id)
         .maybeSingle<AssetCheck>();
-      if (assetError) throw assetError;
-      asset = selectedAsset;
+      if (selected.error && isMissingAssetTypeColumn(selected.error)) {
+        const legacy = await supabaseAdmin
+          .from('assets')
+          .select(assetColumnsLegacy)
+          .eq('id', asset_id)
+          .maybeSingle<AssetCheck>();
+        if (legacy.error) throw legacy.error;
+        asset = legacy.data;
+      } else {
+        if (selected.error) throw selected.error;
+        asset = selected.data;
+      }
       if (!asset) {
         return NextResponse.json({ error: 'Sarpras / Aset yang dipilih tidak ditemukan' }, { status: 404 });
       }
@@ -163,13 +175,23 @@ export async function POST(req: NextRequest) {
     }
     let additionalAssets: AdditionalAsset[] = [];
     if (additionalAssetIds.length > 0) {
-      const { data: selectedAssets, error: additionalError } = await supabaseAdmin
+      const selectedAdditional = await supabaseAdmin
         .from('assets')
         .select('id, code, name, category, location, specs, condition, status, asset_type')
         .in('id', additionalAssetIds)
         .returns<AdditionalAsset[]>();
-      if (additionalError) throw additionalError;
-      additionalAssets = selectedAssets || [];
+      if (selectedAdditional.error && isMissingAssetTypeColumn(selectedAdditional.error)) {
+        const legacy = await supabaseAdmin
+          .from('assets')
+          .select('id, code, name, category, location, specs, condition, status')
+          .in('id', additionalAssetIds)
+          .returns<AdditionalAsset[]>();
+        if (legacy.error) throw legacy.error;
+        additionalAssets = legacy.data || [];
+      } else {
+        if (selectedAdditional.error) throw selectedAdditional.error;
+        additionalAssets = selectedAdditional.data || [];
+      }
       if (additionalAssets.length !== additionalAssetIds.length) {
         return NextResponse.json({ error: 'Salah satu peralatan tambahan tidak ditemukan' }, { status: 404 });
       }

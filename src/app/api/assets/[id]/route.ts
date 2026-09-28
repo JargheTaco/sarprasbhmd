@@ -1,4 +1,9 @@
-import { getSuggestedAssetType, isAssetType } from '@/lib/assetTypes';
+import {
+  getSuggestedAssetType,
+  isAssetType,
+  isMissingAssetTypeColumn,
+  withoutAssetType,
+} from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -66,12 +71,21 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Pilihan simpan aset tidak valid' }, { status: 400 });
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
+    const { data: loaded, error: existingError } = await supabaseAdmin
       .from('assets')
       .select('id, asset_type')
       .eq('id', id)
       .maybeSingle();
-    if (existingError) throw existingError;
+    let existing = loaded as { id: string; asset_type?: string | null } | null;
+
+    if (existingError && isMissingAssetTypeColumn(existingError)) {
+      const fallback = await supabaseAdmin.from('assets').select('id').eq('id', id).maybeSingle();
+      if (fallback.error) throw fallback.error;
+      existing = fallback.data as { id: string } | null;
+    } else if (existingError) {
+      throw existingError;
+    }
+
     if (!existing) {
       return NextResponse.json({ error: 'Aset tidak ditemukan' }, { status: 404 });
     }
@@ -82,7 +96,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ? existing.asset_type
         : getSuggestedAssetType(category);
 
-    const { error: updateError } = await supabaseAdmin.from('assets').update({
+    const payload = {
       name,
       category,
       building,
@@ -101,7 +115,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
       depreciation_current: Number(depreciation_current) || 0,
       book_value: Number(book_value) || 0,
       funding_source: funding_source || 'YPTSH',
-    }).eq('id', id);
+    };
+
+    let { error: updateError } = await supabaseAdmin.from('assets').update(payload).eq('id', id);
+    if (updateError && isMissingAssetTypeColumn(updateError)) {
+      const retry = await supabaseAdmin.from('assets').update(withoutAssetType(payload)).eq('id', id);
+      updateError = retry.error;
+    }
     if (updateError) throw updateError;
 
     const { data: updated, error: fetchError } = await supabaseAdmin.from('assets').select('*').eq('id', id).single();

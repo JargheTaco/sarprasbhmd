@@ -1,4 +1,4 @@
-import { ASSET_TYPES, isAssetType } from '@/lib/assetTypes';
+import { ASSET_TYPES, isAssetType, isMissingAssetTypeColumn, withoutAssetType } from '@/lib/assetTypes';
 import { getCurrentUser } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
@@ -223,11 +223,24 @@ export async function POST(request: NextRequest) {
       for (const batch of chunks(assets, 250)) {
         const { error: insertError } = await supabaseAdmin.from('assets').insert(batch);
         if (insertError) {
-          console.error('Import assets database error:', insertError);
-          return NextResponse.json({
-            error: `Gagal menyimpan batch data inventaris: ${databaseErrorMessage(insertError)}`,
-            imported,
-          }, { status: 400 });
+          if (!isMissingAssetTypeColumn(insertError)) {
+            console.error('Import assets database error:', insertError);
+            return NextResponse.json({
+              error: `Gagal menyimpan batch data inventaris: ${databaseErrorMessage(insertError)}`,
+              imported,
+            }, { status: 400 });
+          }
+          // Kolom asset_type belum tersedia: simpan tanpa kolom tersebut.
+          const retry = await supabaseAdmin
+            .from('assets')
+            .insert(batch.map((item) => withoutAssetType(item)));
+          if (retry.error) {
+            console.error('Import assets database error:', retry.error);
+            return NextResponse.json({
+              error: `Gagal menyimpan batch data inventaris: ${databaseErrorMessage(retry.error)}`,
+              imported,
+            }, { status: 400 });
+          }
         }
         imported += batch.length;
       }
