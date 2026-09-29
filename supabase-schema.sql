@@ -180,12 +180,20 @@ where category in ('VEHICLE', 'ROOM', 'BUILDING')
    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%projector%'
    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%kabel%';
 
+-- Persetujuan peminjaman dilakukan BERSAMA: Staff, Kepala Bagian Sarpras, dan Kepala
+-- Administrasi Umum menandatangani pengajuan yang sama tanpa urutan tetap.
+-- Satu-satunya status menunggu adalah PENDING_APPROVAL; status lama dimigrasikan di bawah.
 insert into loan_requests (id, ticket_code, borrower_name, borrower_id, borrower_role, borrower_phone, borrower_email, asset_id, start_date, start_time, end_date, end_time, purpose, destination, driver_needed, status, staff_notes, staff_checklist, staff_verified_at, staff_verified_by, created_at)
 values
-  ('loan_sample_1', 'SARPRAS-2026-0001', 'Dimas Arya Wardhana', '22051204055', 'Ormawa/UKM', '081234567890', 'dimas.arya@mhs.ac.id', 'ast_car_1', '2026-09-12', '07:00', '2026-09-13', '21:00', 'Kegiatan Pengabdian Masyarakat & Bakti Sosial BEM Fakultas di Desa Binaan Sukamaju', 'Kec. Sukamaju, Kab. Bogor', true, 'PENDING_STAFF', null, null, null, null, '2026-09-08 09:30:00+07'),
-  ('loan_sample_2', 'SARPRAS-2026-0002', 'Dr. Budi Santoso, M.Kom.', '198503152010121002', 'Dosen', '081398765432', 'budi.santoso@dosen.ac.id', 'ast_car_2', '2026-09-15', '08:00', '2026-09-15', '18:00', 'Perjalanan Dinas Menghadiri Seminar Internasional AI & Teknologi Pendidikan di Hotel Grand Horison', 'Pusat Konvensi Horison, Jakarta Pusat', true, 'PENDING_HEAD', 'Checklist staff lengkap. Jadwal armada kosong dan siap ditugaskan.', '{"unit_available":true,"physical_condition_ok":true,"fuel_or_key_ready":true,"documents_complete":true,"notes":"Unit Innova dalam kondisi bersih, oli dan bensin terisi. Surat tugas dosen terlampir lengkap."}', '2026-09-08 10:45:00+07', 'Rizky Pratama, S.T.', '2026-09-07 15:20:00+07'),
+  ('loan_sample_1', 'SARPRAS-2026-0001', 'Dimas Arya Wardhana', '22051204055', 'Ormawa/UKM', '081234567890', 'dimas.arya@mhs.ac.id', 'ast_car_1', '2026-09-12', '07:00', '2026-09-13', '21:00', 'Kegiatan Pengabdian Masyarakat & Bakti Sosial BEM Fakultas di Desa Binaan Sukamaju', 'Kec. Sukamaju, Kab. Bogor', true, 'PENDING_APPROVAL', null, null, null, null, '2026-09-08 09:30:00+07'),
+  ('loan_sample_2', 'SARPRAS-2026-0002', 'Dr. Budi Santoso, M.Kom.', '198503152010121002', 'Dosen', '081398765432', 'budi.santoso@dosen.ac.id', 'ast_car_2', '2026-09-15', '08:00', '2026-09-15', '18:00', 'Perjalanan Dinas Menghadiri Seminar Internasional AI & Teknologi Pendidikan di Hotel Grand Horison', 'Pusat Konvensi Horison, Jakarta Pusat', true, 'PENDING_APPROVAL', 'Checklist staff lengkap. Jadwal armada kosong dan siap ditugaskan.', '{"unit_available":true,"physical_condition_ok":true,"fuel_or_key_ready":true,"documents_complete":true,"notes":"Unit Innova dalam kondisi bersih, oli dan bensin terisi. Surat tugas dosen terlampir lengkap."}', '2026-09-08 10:45:00+07', 'Rizky Pratama, S.T.', '2026-09-07 15:20:00+07'),
   ('loan_sample_3', 'SARPRAS-2026-0003', 'Anisa Fitriani', '210411100088', 'Ormawa/UKM', '085711223344', 'himpunan.it@mhs.ac.id', 'ast_room_3', '2026-09-20', '08:00', '2026-09-20', '17:00', 'Seminar Nasional Teknologi Informasi & Expo Startup Mahasiswa 2026', 'Auditorium Kampus', false, 'APPROVED', 'Fasilitas proyektor dan lighting telah disiapkan.', '{"unit_available":true,"physical_condition_ok":true,"fuel_or_key_ready":true,"documents_complete":true,"notes":"Ruang Aula bebas dari agenda lain, soundman dan teknisi AC sudah dijadwalkan standby."}', '2026-09-06 11:00:00+07', 'Rizky Pratama, S.T.', '2026-09-05 13:10:00+07')
 on conflict (id) do nothing;
+
+-- Migrasi pengajuan lama ke satu status persetujuan bersama.
+update loan_requests
+set status = 'PENDING_APPROVAL'
+where status in ('PENDING_STAFF', 'PENDING_HEAD', 'PENDING_ADMIN_UMUM');
 
 insert into maintenance_records (id, ticket_number, asset_id, type, category, title, description, technician_name, scheduled_date, completed_date, cost, status, action_taken, spare_parts, created_at)
 values

@@ -21,9 +21,7 @@ interface StatsResponse {
     available: number;
   };
   loans: {
-    pending_staff: number;
-    pending_head: number;
-    pending_admin_umum: number;
+    pending_approval: number;
     approved: number;
     in_use: number;
     returned: number;
@@ -93,7 +91,7 @@ export default function DashboardPage() {
         <div className="space-y-2 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-400/20">
-              {user?.role === 'KEPALA_SARPRAS' ? 'Persetujuan Tingkat Kepala Sarpras' : user?.role === 'KEPALA_ADMIN_UMUM' ? 'Persetujuan Administrasi Umum' : 'Verifikasi Tingkat Staff'}
+              Persetujuan Bersama
             </span>
             <span className="text-xs text-slate-300">• SIM-SARPRAS Terpadu</span>
           </div>
@@ -101,11 +99,7 @@ export default function DashboardPage() {
             Selamat Datang, {user?.name}
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            {user?.role === 'KEPALA_SARPRAS'
-              ? `Terdapat ${stats?.loans.pending_head || 0} pengajuan peminjaman yang telah diverifikasi oleh Staff Sarpras dan menunggu persetujuan akhir Anda.`
-              : user?.role === 'KEPALA_ADMIN_UMUM'
-              ? `Terdapat ${stats?.loans.pending_admin_umum || 0} pengajuan peminjaman yang telah disetujui Kepala Sarpras dan menunggu persetujuan administrasi Anda.`
-              : `Terdapat ${stats?.loans.pending_staff || 0} permohonan baru dari civitas kampus yang menunggu pemeriksaan kelayakan dan checklist Staff.`}
+            Terdapat {stats?.loans.pending_approval || 0} pengajuan peminjaman yang menunggu tiga tanda tangan: Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum. Setiap pihak bisa langsung menandatangani tanpa menunggu pihak lain.
           </p>
         </div>
 
@@ -120,61 +114,23 @@ export default function DashboardPage() {
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Metric 1: Pending Staff */}
+        {/* Metric 1: Menunggu Persetujuan Bersama */}
         <Link
-          href="/dashboard/peminjaman?tab=staff"
+          href="/dashboard/peminjaman?tab=approval"
           className={`p-5 rounded-2xl border transition-all ${
-            (stats?.loans.pending_staff || 0) > 0
+            (stats?.loans.pending_approval || 0) > 0
               ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
               : 'bg-white border-slate-200'
           }`}
         >
           <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="text-xs font-semibold text-slate-500">1. Antrean Verifikasi Staff</span>
+            <span className="text-xs font-semibold text-slate-500">1. Menunggu Persetujuan Bersama</span>
             <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-3xl font-black text-slate-900">{stats?.loans.pending_staff || 0}</p>
-          <p className="text-xs text-slate-500 mt-1">Checklist ketersediaan fisik</p>
-        </Link>
-
-        {/* Metric 2b: Pending Kepala Administrasi Umum */}
-        <Link
-          href="/dashboard/peminjaman?tab=admin-umum"
-          className={`p-5 rounded-2xl border transition-all ${
-            (stats?.loans.pending_admin_umum || 0) > 0
-              ? 'bg-cyan-50/50 border-cyan-200 hover:border-cyan-300'
-              : 'bg-white border-slate-200'
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="text-xs font-semibold text-slate-500">3. Persetujuan Administrasi Umum</span>
-            <div className="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold text-xs">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900">{stats?.loans.pending_admin_umum || 0}</p>
-          <p className="text-xs text-slate-500 mt-1">Menunggu persetujuan administrasi</p>
-        </Link>
-
-        {/* Metric 2: Pending Head */}
-        <Link
-          href="/dashboard/peminjaman?tab=head"
-          className={`p-5 rounded-2xl border transition-all ${
-            (stats?.loans.pending_head || 0) > 0
-              ? 'bg-purple-50/50 border-purple-200 hover:border-purple-300'
-              : 'bg-white border-slate-200'
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="text-xs font-semibold text-slate-500">2. Menunggu Persetujuan Kepala</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-3xl font-black text-slate-900">{stats?.loans.pending_head || 0}</p>
-          <p className="text-xs text-slate-500 mt-1">Approval akhir & penerbitan izin</p>
+          <p className="text-3xl font-black text-slate-900">{stats?.loans.pending_approval || 0}</p>
+          <p className="text-xs text-slate-500 mt-1">Staff + Kepala Bagian + Kepala Administrasi</p>
         </Link>
 
         {/* Metric 3: Active In Use */}

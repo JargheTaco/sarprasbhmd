@@ -1,5 +1,6 @@
 'use client';
 
+import { isPendingApproval } from '@/lib/loanApproval';
 import { OfficialLetterModal } from '@/components/OfficialLetterModal';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
@@ -137,14 +138,31 @@ function TrackingContent() {
   const headCheck = parseChecklist(loan?.head_checklist);
 
   // Timeline Step Status Helper
+  // Persetujuan berjalan bersama: ketiga pihak menandatangani tanpa urutan tetap.
   const getStepStatus = (stepIndex: number) => {
     if (!loan) return 'inactive';
 
     if (loan.status === 'REJECTED') {
-      if (stepIndex === 1) return 'completed';
-      if (stepIndex === 2 && !loan.staff_verified_at) return 'rejected';
-      if (stepIndex === 3 && loan.staff_verified_at && !loan.head_approved_at) return 'rejected';
-        if (stepIndex === 4 && loan.head_approved_at && !loan.admin_umum_approved_at) return 'rejected';
+      if (stepIndex <= 1) return 'completed';
+      // Tahap yang ditolak ditentukan dari tanda tangan yang tercatat
+      if (stepIndex === 2) {
+        if (!loan.staff_verified_at) return 'rejected';
+        if (!loan.head_approved_at) return 'completed';
+        if (!loan.admin_umum_approved_at) return 'completed';
+        return 'rejected';
+      }
+      if (stepIndex === 3) {
+        if (!loan.head_approved_at) return 'rejected';
+        if (!loan.staff_verified_at) return 'completed';
+        if (!loan.admin_umum_approved_at) return 'completed';
+        return 'rejected';
+      }
+      if (stepIndex === 4) {
+        if (!loan.admin_umum_approved_at) return 'rejected';
+        if (!loan.staff_verified_at) return 'completed';
+        if (!loan.head_approved_at) return 'completed';
+        return 'rejected';
+      }
       return 'inactive';
     }
 
@@ -153,22 +171,22 @@ function TrackingContent() {
 
     // Step 2: Verifikasi Staff
     if (stepIndex === 2) {
-      if (loan.status === 'PENDING_STAFF') return 'current';
-      if (['PENDING_HEAD', 'PENDING_ADMIN_UMUM', 'APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
+      if (loan.staff_verified_at) return 'completed';
+      if (isPendingApproval(loan.status)) return 'current';
       return 'inactive';
     }
 
-    // Step 3: Persetujuan Kepala
+    // Step 3: Persetujuan Kepala Bagian
     if (stepIndex === 3) {
-      if (loan.status === 'PENDING_HEAD') return 'current';
-      if (['PENDING_ADMIN_UMUM', 'APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
+      if (loan.head_approved_at) return 'completed';
+      if (isPendingApproval(loan.status)) return 'current';
       return 'inactive';
     }
 
     // Step 4: Persetujuan Kepala Administrasi Umum
     if (stepIndex === 4) {
-      if (loan.status === 'PENDING_ADMIN_UMUM') return 'current';
-      if (['APPROVED', 'IN_USE', 'RETURNED'].includes(loan.status)) return 'completed';
+      if (loan.admin_umum_approved_at) return 'completed';
+      if (isPendingApproval(loan.status)) return 'current';
       return 'inactive';
     }
 
@@ -235,7 +253,7 @@ function TrackingContent() {
               }}
               className="text-sky-300 hover:underline font-mono"
             >
-              SARPRAS-2026-0001 (Menunggu Staff)
+              SARPRAS-2026-0001 (Menunggu Persetujuan)
             </button>
             <span>•</span>
             <button
@@ -319,7 +337,7 @@ function TrackingContent() {
           {/* Timeline Process Tracker */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-base text-slate-900 mb-6">
-              Progres Persetujuan Bertingkat
+              Progres Persetujuan Bersama
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-4 relative">
@@ -407,7 +425,7 @@ function TrackingContent() {
                 </div>
                 <h4 className="font-bold text-xs">4. Administrasi Umum</h4>
                 <p className="text-[11px]">
-                  {loan.status === 'PENDING_ADMIN_UMUM' ? 'Menunggu Kepala Administrasi Umum' : getStepStatus(4) === 'completed' ? 'Disetujui' : 'Menunggu'}
+                  {loan.admin_umum_approved_at ? 'Disetujui' : getStepStatus(4) === 'current' ? 'Menunggu Tanda Tangan' : 'Menunggu'}
                 </p>
               </div>
 
@@ -464,7 +482,7 @@ function TrackingContent() {
                   </span>
                 ) : (
                   <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full">
-                    Dalam Antrean Staff
+                    Menunggu Tanda Tangan Staff
                   </span>
                 )}
               </div>
@@ -546,7 +564,7 @@ function TrackingContent() {
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 italic py-4 text-center">
-                  Menunggu verifikasi staff selesai terlebih dahulu sebelum diputuskan oleh Kepala Bagian Sarpras.
+                  Kepala Bagian Sarpras dapat langsung memutuskan tanpa menunggu verifikasi staff.
                 </p>
               )}
             </div>

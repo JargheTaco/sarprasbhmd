@@ -40,8 +40,7 @@ interface StatsData {
     available: number;
   };
   loans: {
-    pending_staff: number;
-    pending_head: number;
+    pending_approval: number;
     approved: number;
     in_use: number;
     total_active: number;

@@ -1,5 +1,11 @@
 import { getCurrentUser } from '@/lib/auth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { APPROVER_ROLE_LABEL, APPROVAL_STAGES, canSignApprovals } from '@/lib/loanApproval';
+import {
+  ApprovalError,
+  applyStageDecision,
+  ensurePendingApproval,
+  findLoanByTicket,
+} from '@/lib/loanApprovalServer';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface Params {
@@ -9,9 +15,12 @@ interface Params {
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== 'KEPALA_SARPRAS' && user.role !== 'ADMIN')) {
+    if (!canSignApprovals(user?.role)) {
       return NextResponse.json(
-        { error: 'Akses ditolak. Hanya Kepala Bagian Sarpras atau Admin yang berwenang memberikan persetujuan akhir.' },
+        {
+          error:
+            'Akses ditolak. Persetujuan bersama hanya untuk Staff Sarpras, Kepala Bagian Sarpras, Kepala Administrasi Umum, atau Admin.',
+        },
         { status: 403 }
       );
     }
@@ -20,62 +29,46 @@ export async function POST(req: NextRequest, { params }: Params) {
     const body = await req.json();
     const { action, notes, priority_approved, schedule_approved } = body;
 
-    interface LoanRow {
-      id: string;
-      status: string;
-      ticket_code: string;
-    }
+    const loan = await findLoanByTicket(ticket);
+    ensurePendingApproval(loan);
 
-    const { data: loans, error: findError } = await supabaseAdmin
-      .from('loan_requests')
-      .select('id, status, ticket_code')
-      .or(`ticket_code.eq.${ticket},id.eq.${ticket}`)
-      .limit(1);
-    if (findError) throw findError;
-    const loan = loans?.[0] as LoanRow | undefined;
-
-    if (!loan) {
-      return NextResponse.json({ error: 'Pengajuan peminjaman tidak ditemukan' }, { status: 404 });
-    }
-
-    if (loan.status !== 'PENDING_HEAD') {
-      return NextResponse.json(
-        { error: `Pengajuan tidak dalam tahap persetujuan Kepala Sarpras (Status saat ini: ${loan.status})` },
-        { status: 400 }
-      );
-    }
-
-    const checklistJson = JSON.stringify({
+    const checklist = {
       priority_approved: !!priority_approved,
       schedule_approved: !!schedule_approved,
       notes: notes || '',
-    });
+    };
 
-    const now = new Date().toISOString();
-    const newStatus = action === 'REJECT' ? 'REJECTED' : 'PENDING_ADMIN_UMUM';
+    const result = await applyStageDecision(
+      loan,
+      {
+        action: action === 'REJECT' ? 'REJECT' : 'APPROVE',
+        notes,
+        checklist,
+        atField: 'head_approved_at',
+        byField: 'head_approved_by',
+        notesField: 'head_notes',
+        checklistField: 'head_checklist',
+      },
+      user!.name
+    );
 
-    const { error: updateError } = await supabaseAdmin.from('loan_requests').update({
-      status: newStatus,
-      head_notes: notes || (action === 'REJECT' ? 'Ditolak oleh Kepala Sarpras' : 'Disetujui oleh Kepala Sarpras, menunggu Kepala Administrasi Umum'),
-      head_checklist: JSON.parse(checklistJson),
-      head_approved_at: now,
-      head_approved_by: user.name,
-    }).eq('id', loan.id);
-    if (updateError) throw updateError;
-
-    const { data: updated, error: fetchError } = await supabaseAdmin.from('loan_requests').select('*').eq('id', loan.id).single();
-    if (fetchError) throw fetchError;
-
+    const actorLabel = APPROVER_ROLE_LABEL[user!.role] || user!.role;
     return NextResponse.json({
       success: true,
-      message: action === 'REJECT' 
-        ? 'Pengajuan peminjaman telah ditolak oleh Kepala Sarpras' 
-        : 'Peminjaman telah disetujui Kepala Sarpras dan diteruskan ke Kepala Administrasi Umum.',
-      loan: updated,
+      message:
+        action === 'REJECT'
+          ? `Pengajuan ditolak oleh ${actorLabel}.`
+          : result.isFullyApproved
+          ? 'Seluruh pihak telah menyetujui. Peminjaman siap untuk serah terima.'
+          : `Persetujuan dicatat atas nama ${actorLabel}. Menunggu ${APPROVAL_STAGES.length - result.signedCount} persetujuan lagi.`,
+      loan: result.loan,
     });
   } catch (err: unknown) {
+    if (err instanceof ApprovalError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     console.error('Head approve error:', err);
-    return NextResponse.json({ error: 'Gagal memproses persetujuan Kepala Sarpras' }, { status: 500 });
+    return NextResponse.json({ error: 'Gagal memproses persetujuan Kepala Bagian Sarpras' }, { status: 500 });
   }
 }
 

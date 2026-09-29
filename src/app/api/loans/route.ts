@@ -1,4 +1,5 @@
 import { isLoanableAsset, isMissingColumn } from '@/lib/assetTypes';
+import { BLOCKING_LOAN_STATUSES } from '@/lib/loanApproval';
 import { assertSupabaseConfigured, supabaseAdmin, supabaseConfigErrorMessage } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest) {
       let conflictQuery = supabaseAdmin
         .from('loan_requests')
         .select('ticket_code, start_date, start_time, end_date, end_time')
-        .in('status', ['APPROVED', 'IN_USE', 'PENDING_HEAD', 'PENDING_ADMIN_UMUM']);
+        .in('status', BLOCKING_LOAN_STATUSES);
       conflictQuery = 'room_building' in target
         ? conflictQuery.eq('room_building', target.room_building).eq('room_name', target.room_name)
         : conflictQuery.eq('asset_id', target.asset_id);
@@ -248,7 +249,7 @@ export async function POST(req: NextRequest) {
         .from('loan_request_items')
         .select('loan_requests!inner(ticket_code, start_date, start_time, end_date, end_time, status)')
         .eq('asset_id', additionalAssetId)
-        .in('loan_requests.status', ['APPROVED', 'IN_USE', 'PENDING_HEAD', 'PENDING_ADMIN_UMUM']);
+        .in('loan_requests.status', BLOCKING_LOAN_STATUSES);
       if (conflictError) throw conflictError;
       return (possibleConflicts || []).map((row) => row.loan_requests?.[0]).find((row) => row &&
         `${row.start_date} ${row.start_time}` < endIso && `${row.end_date} ${row.end_time}` > startIso
@@ -298,7 +299,7 @@ export async function POST(req: NextRequest) {
       destination: destination || null,
       driver_needed: !!driver_needed,
       attachment_url: attachment_url || null,
-      status: 'PENDING_STAFF',
+      status: 'PENDING_APPROVAL',
       created_at: now,
     });
     if (insertError) throw insertError;

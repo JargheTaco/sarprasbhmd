@@ -44,7 +44,7 @@ export default function JadwalPage() {
         if (data?.loans) {
           // Only show active and approved/in-use or pending schedules
           const activeSchedules = data.loans.filter((l: LoanSchedule) =>
-            ['PENDING_STAFF', 'PENDING_HEAD', 'APPROVED', 'IN_USE'].includes(l.status)
+            ['PENDING_APPROVAL', 'PENDING_STAFF', 'PENDING_HEAD', 'PENDING_ADMIN_UMUM', 'APPROVED', 'IN_USE'].includes(l.status)
           );
           setLoans(activeSchedules);
         }

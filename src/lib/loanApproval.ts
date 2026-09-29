@@ -124,6 +124,23 @@ export function stageForRole(role?: string | null): ApprovalStage | null {
   return found ?? null;
 }
 
+/**
+ * Semua pihak yang berwenang persetujuan boleh menandatangani tahap mana pun.
+ * Karena persetujuan berjalan bersama, Kepala Bagian dan Kepala Administrasi Umum
+ * tidak lagi menunggu hasil checklist Staff lebih dulu.
+ */
+export function canSignApprovals(role?: string | null): boolean {
+  if (!role) return false;
+  return role === 'ADMIN' || stageForRole(role) !== null;
+}
+
+export const APPROVER_ROLE_LABEL: Record<string, string> = {
+  ADMIN: 'Administrator',
+  STAFF_SARPRAS: 'Staff Sarpras',
+  KEPALA_SARPRAS: 'Kepala Bagian Sarpras',
+  KEPALA_ADMIN_UMUM: 'Kepala Administrasi Umum',
+};
+
 /** Ringkasan progres tanda tangan, mis. "2 dari 3 tanda tangan". */
 export function approvalProgressLabel(loan: ApprovalSnapshot | null | undefined): string {
   const done = countApprovals(loan);

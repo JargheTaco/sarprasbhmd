@@ -1,3 +1,4 @@
+import { isPendingApproval } from '@/lib/loanApproval';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
@@ -18,9 +19,8 @@ export async function GET() {
     const roomCount = count(assets, (row) => row.category === 'ROOM');
     const maintenanceAssetsCount = count(assets, (row) => ['ELECTRONIC', 'MACHINERY', 'ELECTRICAL'].includes(row.category || ''));
     const availableAssets = count(assets, (row) => row.status === 'TERSEDIA');
-    const pendingStaff = count(loans, (row) => row.status === 'PENDING_STAFF');
-    const pendingHead = count(loans, (row) => row.status === 'PENDING_HEAD');
-    const pendingAdminUmum = count(loans, (row) => row.status === 'PENDING_ADMIN_UMUM');
+    // Semua pengajuan menunggu tiga tanda tangan, jadi hanya ada satu antrean persetujuan.
+    const pendingApproval = count(loans, (row) => isPendingApproval(row.status));
     const approvedLoans = count(loans, (row) => row.status === 'APPROVED');
     const inUseLoans = count(loans, (row) => row.status === 'IN_USE');
     const returnedLoans = count(loans, (row) => row.status === 'RETURNED');
@@ -41,13 +41,11 @@ export async function GET() {
           available: availableAssets,
         },
         loans: {
-          pending_staff: pendingStaff,
-          pending_head: pendingHead,
-          pending_admin_umum: pendingAdminUmum,
+          pending_approval: pendingApproval,
           approved: approvedLoans,
           in_use: inUseLoans,
           returned: returnedLoans,
-          total_active: pendingStaff + pendingHead + pendingAdminUmum + approvedLoans + inUseLoans,
+          total_active: pendingApproval + approvedLoans + inUseLoans,
         },
         maintenance: {
           scheduled: scheduledMnt,

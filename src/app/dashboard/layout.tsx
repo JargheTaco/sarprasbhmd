@@ -33,7 +33,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pendingCount, setPendingCount] = useState({ staff: 0, head: 0, adminUmum: 0 });
+  const [pendingCount, setPendingCount] = useState({ approval: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -60,11 +60,7 @@ export default function DashboardLayout({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.stats?.loans) {
-          setPendingCount({
-            staff: data.stats.loans.pending_staff || 0,
-            head: data.stats.loans.pending_head || 0,
-            adminUmum: data.stats.loans.pending_admin_umum || 0,
-          });
+          setPendingCount({ approval: data.stats.loans.pending_approval || 0 });
         }
       })
       .catch(() => {});
@@ -97,11 +93,8 @@ export default function DashboardLayout({
     user?.role === 'STAFF_SARPRAS' ? 'bg-blue-100 text-blue-800 border-blue-200' :
     'bg-emerald-100 text-emerald-800 border-emerald-200';
 
-  const relevantPending = 
-    user?.role === 'KEPALA_SARPRAS' ? pendingCount.head :
-    user?.role === 'KEPALA_ADMIN_UMUM' ? pendingCount.adminUmum :
-    user?.role === 'STAFF_SARPRAS' ? pendingCount.staff :
-    pendingCount.staff + pendingCount.head + pendingCount.adminUmum;
+  // Semua pihak berwenang menandatangani pengajuan yang sama, jadi badge memakai satu antrean.
+  const relevantPending = pendingCount.approval;
 
   const navItems = [
     {
@@ -280,7 +273,7 @@ export default function DashboardLayout({
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold hover:bg-amber-100 transition-colors"
             >
               <Clock className="w-3.5 h-3.5 text-amber-600" />
-              <span>Verifikasi Masuk: {relevantPending}</span>
+              <span>Menunggu Persetujuan: {relevantPending}</span>
             </Link>
             <button
               onClick={handleLogout}

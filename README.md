@@ -57,13 +57,28 @@ Nilai ini dapat diatur dari form aset, form impor CSV, dan API. Endpoint `GET /a
 
 ## Alur Peminjaman
 
-1. Pemohon mengisi formulir peminjaman dan menerima kode tiket.
-2. Staff Sarpras memeriksa ketersediaan serta kondisi sarpras.
-3. Kepala Sarpras memberikan persetujuan atau penolakan.
-4. Pengajuan yang disetujui dapat diproses untuk serah terima dan penggunaan.
-5. Setelah selesai digunakan, petugas mencatat pengembalian dan checklist kondisi akhir.
+Persetujuan peminjaman dilakukan **bersama**, bukan berurutan. Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum menandatangani pengajuan yang sama, dan **tidak harus menunggu pihak lain**.
 
-Status yang digunakan antara lain `PENDING_STAFF`, `PENDING_HEAD`, `APPROVED`, `IN_USE`, `RETURNED`, dan `REJECTED`.
+1. Pemohon mengisi formulir peminjaman dan menerima kode tiket.
+2. Pengajuan menunggu di status `PENDING_APPROVAL` sampai tiga tanda tangan terkumpul.
+3. Setiap pihak bisa langsung menyetujui atau menolak kapan saja, dalam urutan apa pun. Kepala Bagian dan Kepala Administrasi Umum tidak perlu menunggu checklist staff selesai.
+4. Tombol **Ceklis Bersama** mencatat seluruh checklist sekaligus dalam satu aksi.
+5. Setelah Staff, Kepala Bagian, dan Kepala Administrasi Umum semuanya menyetujui, status otomatis menjadi `APPROVED` dan pengajuan siap untuk serah terima.
+6. Bila satu pihak menolak, pengajuan langsung berstatus `REJECTED`.
+7. Setelah selesai digunakan, petugas mencatat pengembalian dan checklist kondisi akhir.
+
+Status yang digunakan antara lain `PENDING_APPROVAL`, `APPROVED`, `IN_USE`, `RETURNED`, dan `REJECTED`.
+
+### Endpoint Persetujuan
+
+| Endpoint | Keterangan |
+| --- | --- |
+| `POST /api/loans/[ticket]/staff-verify` | Checklist verifikasi staff |
+| `POST /api/loans/[ticket]/head-approve` | Persetujuan Kepala Bagian Sarpras |
+| `POST /api/loans/[ticket]/admin-approve` | Persetujuan Kepala Administrasi Umum |
+| `POST /api/loans/[ticket]/joint-approve` | Menuliskan beberapa tanda tangan sekaligus |
+
+Keempat endpoint dapat diakses oleh `STAFF_SARPRAS`, `KEPALA_SARPRAS`, `KEPALA_ADMIN_UMUM`, dan `ADMIN` selama pengajuan masih berstatus menunggu.
 
 ## Menjalankan Project
 

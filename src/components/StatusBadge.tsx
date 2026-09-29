@@ -22,25 +22,15 @@ export function StatusBadge({ status, value, type = 'loan' }: StatusBadgeProps) 
 
   if (type === 'loan') {
     switch (s) {
+      // Semua pengajuan menunggu tiga tanda tangan, bukan berurutan per tahap.
+      case 'PENDING_APPROVAL':
       case 'PENDING_STAFF':
+      case 'PENDING_HEAD':
+      case 'PENDING_ADMIN_UMUM':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
             <Clock className="w-3.5 h-3.5 animate-pulse" />
-            Menunggu Verifikasi Staff
-          </span>
-        );
-      case 'PENDING_HEAD':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-            <Clock className="w-3.5 h-3.5 animate-pulse" />
-            Menunggu Persetujuan Kepala
-          </span>
-        );
-      case 'PENDING_ADMIN_UMUM':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200">
-            <Clock className="w-3.5 h-3.5 animate-pulse" />
-            Menunggu Kepala Administrasi Umum
+            Menunggu Persetujuan Bersama
           </span>
         );
       case 'APPROVED':
