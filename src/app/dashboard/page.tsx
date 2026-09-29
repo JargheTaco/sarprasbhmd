@@ -91,7 +91,7 @@ export default function DashboardPage() {
         <div className="space-y-2 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-400/20">
-              Persetujuan Bersama
+              Persetujuan
             </span>
             <span className="text-xs text-slate-300">• SIM-SARPRAS Terpadu</span>
           </div>
@@ -99,7 +99,7 @@ export default function DashboardPage() {
             Selamat Datang, {user?.name}
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            Terdapat {stats?.loans.pending_approval || 0} pengajuan peminjaman yang menunggu tiga tanda tangan: Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum. Setiap pihak bisa langsung menandatangani tanpa menunggu pihak lain.
+            Terdapat {stats?.loans.pending_approval || 0} pengajuan peminjaman yang menunggu tiga tanda tangan: Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum. Tiap pihak bisa langsung menyetujui sendiri tanpa menunggu pihak lain.
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export default function DashboardPage() {
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Metric 1: Menunggu Persetujuan Bersama */}
+        {/* Metric 1: Antrean Persetujuan */}
         <Link
           href="/dashboard/peminjaman?tab=approval"
           className={`p-5 rounded-2xl border transition-all ${
@@ -124,7 +124,7 @@ export default function DashboardPage() {
           }`}
         >
           <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="text-xs font-semibold text-slate-500">1. Menunggu Persetujuan Bersama</span>
+            <span className="text-xs font-semibold text-slate-500">1. Menunggu Persetujuan</span>
             <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
               <ShieldCheck className="w-4 h-4" />
             </div>

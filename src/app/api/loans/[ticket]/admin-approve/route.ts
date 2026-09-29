@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json(
         {
           error:
-            'Akses ditolak. Persetujuan bersama hanya untuk Staff Sarpras, Kepala Bagian Sarpras, Kepala Administrasi Umum, atau Admin.',
+            'Akses ditolak. Persetujuan hanya untuk Staff Sarpras, Kepala Bagian Sarpras, Kepala Administrasi Umum, atau Admin.',
         },
         { status: 403 }
       );

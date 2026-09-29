@@ -1,9 +1,11 @@
 /**
- * Alur persetujuan peminjaman dijalankan BERSAMA (parallel), bukan berurutan.
+ * Alur persetujuan peminjaman: tiap pihak menyetujui SESUNGGUHNYA sendiri-sendiri,
+ * tanpa harus menunggu pihak lain.
  *
  * Pengajuan berhenti di satu status `PENDING_APPROVAL` sampai Staff Sarpras,
- * Kepala Bagian Sarpras, dan Kepala Administrasi Umum sama-sama menandatanganinya.
- * Setiap pihak bebas menandatangani lebih dulu tanpa menunggu tahap lain.
+ * Kepala Bagian Sarpras, dan Kepala Administrasi Umum masing-masing menandatanganinya.
+ * Seorang Kepala Bagian tidak perlu menunggu checklist Staff selesai, dan sebaliknya:
+ * urutan siapa menandatangani lebih dulu tidak berpengaruh.
  * Pengajuan menjadi `APPROVED` otomatis setelah tiga tanda tangan lengkap,
  * dan `REJECTED` begitu ada satu pihak menolak.
  *

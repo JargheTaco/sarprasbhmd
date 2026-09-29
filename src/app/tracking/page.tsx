@@ -138,7 +138,7 @@ function TrackingContent() {
   const headCheck = parseChecklist(loan?.head_checklist);
 
   // Timeline Step Status Helper
-  // Persetujuan berjalan bersama: ketiga pihak menandatangani tanpa urutan tetap.
+  // Tiap pihak menyetujui sendiri-sendiri: urutan tanda tangan tidak berpengaruh.
   const getStepStatus = (stepIndex: number) => {
     if (!loan) return 'inactive';
 
@@ -337,7 +337,7 @@ function TrackingContent() {
           {/* Timeline Process Tracker */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-base text-slate-900 mb-6">
-              Progres Persetujuan Bersama
+              Progres Persetujuan
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-6 gap-4 relative">

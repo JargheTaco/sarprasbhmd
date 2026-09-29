@@ -126,56 +126,6 @@ export async function applyStageDecision(
 
 function defaultNoteFromField(notesField: string, isRejected: boolean) {
   const stage = APPROVAL_STAGES.find((item) => APPROVAL_STAGE_META[item].notesField === notesField);
-  const label = stage ? APPROVAL_STAGE_META[stage].label : 'persetujuan bersama';
+  const label = stage ? APPROVAL_STAGE_META[stage].label : 'persetujuan peminjaman';
   return isRejected ? `Ditolak pada ${label}` : `Disetujui pada ${label}`;
 }
-
-/**
- * Menuliskan tanda tangan beberapa tahap sekaligus, dipakai untuk persetujuan bersama
- * dalam satu aksi agar tidak perlu membuka dan menutup tiap tahap satu per satu.
- */
-export async function signStagesTogether(
-  loan: LoanApprovalRow,
-  stages: ApprovalStage[],
-  payloads: Partial<Record<ApprovalStage, { notes?: string; checklist?: Record<string, unknown> }>>,
-  actorName: string,
-) {
-  if (stages.length === 0) {
-    throw new ApprovalError('Tidak ada tahap persetujuan yang dipilih', 400);
-  }
-
-  const now = new Date().toISOString();
-  const patch: Record<string, unknown> = {};
-
-  for (const stage of stages) {
-    const meta = APPROVAL_STAGE_META[stage];
-    const payload = payloads[stage];
-    patch[meta.atField] = now;
-    patch[meta.byField] = actorName;
-    patch[meta.notesField] = payload?.notes?.trim() || defaultNoteFromField(meta.notesField, false);
-    if (payload?.checklist) {
-      patch[meta.checklistField] = payload.checklist;
-    }
-  }
-
-  const { error: updateError } = await supabaseAdmin
-    .from('loan_requests')
-    .update(patch)
-    .eq('id', loan.id);
-  if (updateError) throw updateError;
-
-  const { data: updated, error: fetchError } = await supabaseAdmin
-    .from('loan_requests')
-    .select('*')
-    .eq('id', loan.id)
-    .single();
-  if (fetchError) throw fetchError;
-
-  if (isAllSigned(updated)) {
-    const finalized = await finalizeWhenComplete(loan.id);
-    return { loan: finalized, isFullyApproved: true, signedCount: APPROVAL_STAGES.length };
-  }
-
-  return { loan: updated, isFullyApproved: false, signedCount: countApprovals(updated) };
-}
-

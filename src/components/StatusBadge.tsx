@@ -30,7 +30,7 @@ export function StatusBadge({ status, value, type = 'loan' }: StatusBadgeProps) 
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
             <Clock className="w-3.5 h-3.5 animate-pulse" />
-            Menunggu Persetujuan Bersama
+            Menunggu Persetujuan (Staff, Kepala, Administrasi)
           </span>
         );
       case 'APPROVED':

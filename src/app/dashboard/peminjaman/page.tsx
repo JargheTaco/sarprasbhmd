@@ -15,12 +15,14 @@ import {
   Calendar,
   Car,
   CheckCircle2,
+  CheckSquare,
   Clock,
   Layers,
   Phone,
   Printer,
   RotateCcw,
   Search,
+  ShieldCheck,
   User,
   Users,
   XCircle
@@ -77,7 +79,7 @@ interface AuthUser {
 
 function PeminjamanContent() {
   const searchParams = useSearchParams();
-  // Tab lama dipetakan ke tab persetujuan bersama agar tautan lama tetap bekerja.
+  // Tab lama dipetakan ke tab antrean persetujuan agar tautan lama tetap bekerja.
   const rawTab = searchParams.get('tab') || 'approval';
   const initialTab = ['staff', 'head', 'admin-umum'].includes(rawTab) ? 'approval' : rawTab;
 
@@ -92,7 +94,6 @@ function PeminjamanContent() {
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [headModalOpen, setHeadModalOpen] = useState(false);
   const [adminUmumModalOpen, setAdminUmumModalOpen] = useState(false);
-  const [jointModalOpen, setJointModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [letterModalOpen, setLetterModalOpen] = useState(false);
@@ -273,39 +274,6 @@ function PeminjamanContent() {
     }
   };
 
-  // Handle Joint Approval (semua checklist dikirim sekaligus)
-  const handleJointSubmit = async (action: 'APPROVE' | 'REJECT') => {
-    if (!selectedLoan) return;
-    setSubmitting(true);
-    setActionError(null);
-
-    try {
-      const res = await fetch(`/api/loans/${selectedLoan.ticket_code}/joint-approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action,
-          stages: [...APPROVAL_STAGES],
-          staff: { ...staffCheck },
-          head: { ...headCheck },
-          admin_umum: { ...adminUmumCheck },
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses persetujuan bersama');
-
-      setJointModalOpen(false);
-      setSelectedLoan(null);
-      await fetchData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem';
-      setActionError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // Handle Dispatch (Handover keys/unit)
   const handleDispatch = (loan: LoanItem) => {
     setSelectedLoan(loan);
@@ -381,7 +349,7 @@ function PeminjamanContent() {
             Meja Kerja Persetujuan & Peminjaman Sarpras
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Persetujuan dilakukan bersama: Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum bisa langsung menandatangani tanpa saling menunggu.
+            Tiap pihak menyetujui sendiri-sendiri dan tidak saling menunggu: Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum bisa langsung menandatangani kapan saja.
           </p>
         </div>
 
@@ -408,7 +376,7 @@ function PeminjamanContent() {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>1. Persetujuan Bersama</span>
+          <span>1. Antrean Persetujuan</span>
           {countApproval > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'approval' ? 'bg-amber-800 text-amber-100' : 'bg-amber-100 text-amber-800'}`}>
               {countApproval}
@@ -520,7 +488,7 @@ function PeminjamanContent() {
                   </div>
                 )}
 
-                {/* Progres tiga tanda tangan persetujuan bersama */}
+                {/* Progres tiga tanda tangan (tiap pihak menandatangani sendiri) */}
                 {isPendingApproval(loan.status) && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     {APPROVAL_STAGES.map((stage) => {
@@ -548,57 +516,46 @@ function PeminjamanContent() {
 
               {/* Action Buttons Column */}
               <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-48">
-                {/* Persetujuan bersama: semua checklist bisa dicentang dalam satu aksi */}
+                {/* Tiga tombol persetujuan terpisah: tiap pihak menandatangani sendiri,
+                    tanpa perlu menunggu pihak lain. */}
                 {isPendingApproval(loan.status) && (
-                  <>
+                  <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => {
                         setSelectedLoan(loan);
-                        setJointModalOpen(true);
+                        setStaffModalOpen(true);
                         setActionError(null);
                       }}
                       className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Users className="w-4 h-4" />
-                      <span>Ceklis Bersama</span>
+                      <CheckSquare className="w-4 h-4" />
+                      <span>Checklist Staff</span>
                     </button>
 
-                    <div className="flex flex-wrap gap-1.5 justify-center">
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setStaffModalOpen(true);
-                          setActionError(null);
-                        }}
-                        title="Verifikasi Staff Sarpras"
-                        className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-[10px] font-bold transition-colors cursor-pointer"
-                      >
-                        Staff
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setHeadModalOpen(true);
-                          setActionError(null);
-                        }}
-                        title="Persetujuan Kepala Bagian Sarpras"
-                        className="px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold transition-colors cursor-pointer"
-                      >
-                        Kepala
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedLoan(loan);
-                          setAdminUmumModalOpen(true);
-                          setActionError(null);
-                        }}
-                        title="Persetujuan Kepala Administrasi Umum"
-                        className="px-2.5 py-1.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 text-[10px] font-bold transition-colors cursor-pointer"
-                      >
-                        Administrasi
-                      </button>
-                    </div>
-                  </>
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setHeadModalOpen(true);
+                        setActionError(null);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Persetujuan Kepala</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedLoan(loan);
+                        setAdminUmumModalOpen(true);
+                        setActionError(null);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Persetujuan Administrasi</span>
+                    </button>
+                  </div>
                 )}
 
                 {/* Approved status: Dispatch / Handover */}
@@ -670,183 +627,13 @@ function PeminjamanContent() {
         </div>
       )}
 
-      {/* MODAL: Persetujuan Bersama (semua checklist dalam satu aksi) */}
-      {jointModalOpen && selectedLoan && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
-                  Persetujuan Bersama
-                </span>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Ceklis Staff, Kepala Bagian &amp; Kepala Administrasi
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setJointModalOpen(false)}
-                disabled={submitting}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold disabled:opacity-50"
-              >
-                Tutup
-              </button>
-            </div>
-
-            {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
-
-            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-xs space-y-1">
-              <p className="font-mono font-bold text-amber-900">{selectedLoan.ticket_code}</p>
-              <p className="font-bold text-slate-900">{selectedLoan.asset_name} ({selectedLoan.asset_code})</p>
-              <p className="text-slate-600">Pemohon: {selectedLoan.borrower_name} ({selectedLoan.borrower_role})</p>
-              <p className="text-slate-600">Agenda: {selectedLoan.purpose}</p>
-              <p className="text-slate-600">Progres saat ini: {approvalProgressLabel(selectedLoan)}</p>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Centang seluruh butir yang sudah diperiksa. Pengajuan otomatis berstatus disetujui setelah ketiga pihak menandatangani, dan langsung ditolak bila ada satu pihak menolak.
-            </p>
-
-            {user && (
-              <p className="text-xs font-semibold text-slate-700">
-                Anda masuk sebagai {APPROVER_ROLE_LABEL[user.role] || user.role}. Tanda tangan akan dicatat atas nama {user.name}.
-              </p>
-            )}
-
-            {/* Bagian Staff */}
-            <div className="space-y-2.5 border border-amber-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">1. Staff Sarpras</span>
-                {hasStageSigned(selectedLoan, 'staff') && (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                    Sudah ditandatangani ({selectedLoan.staff_verified_by})
-                  </span>
-                )}
-              </div>
-              {[
-                { key: 'unit_available' as const, text: 'Unit sarpras siap pakai dan jadwal tidak bentrok.' },
-                { key: 'physical_condition_ok' as const, text: 'Kondisi fisik sarpras baik dan layak.' },
-                { key: 'fuel_or_key_ready' as const, text: 'Kesiapan BBM / driver / kunci sudah siap.' },
-                { key: 'documents_complete' as const, text: 'Dokumen pemohon dan keperluan valid.' },
-              ].map((item) => (
-                <label key={item.key} className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={staffCheck[item.key]}
-                    onChange={(e) => setStaffCheck({ ...staffCheck, [item.key]: e.target.checked })}
-                    className="w-4 h-4 text-amber-600 rounded mt-0.5"
-                  />
-                  <span className="text-xs text-slate-700">{item.text}</span>
-                </label>
-              ))}
-              <textarea
-                rows={2}
-                placeholder="Catatan staff (opsional)"
-                value={staffCheck.notes}
-                onChange={(e) => setStaffCheck({ ...staffCheck, notes: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Bagian Kepala Bagian Sarpras */}
-            <div className="space-y-2.5 border border-purple-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">2. Kepala Bagian Sarpras</span>
-                {hasStageSigned(selectedLoan, 'head') && (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                    Sudah ditandatangani ({selectedLoan.head_approved_by})
-                  </span>
-                )}
-              </div>
-              {[
-                { key: 'priority_approved' as const, text: 'Urgensi dan prioritas kegiatan disetujui.' },
-                { key: 'schedule_approved' as const, text: 'Alokasi jadwal armada atau ruang disetujui.' },
-              ].map((item) => (
-                <label key={item.key} className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={headCheck[item.key]}
-                    onChange={(e) => setHeadCheck({ ...headCheck, [item.key]: e.target.checked })}
-                    className="w-4 h-4 text-purple-600 rounded mt-0.5"
-                  />
-                  <span className="text-xs text-slate-700">{item.text}</span>
-                </label>
-              ))}
-              <textarea
-                rows={2}
-                placeholder="Disposisi Kepala (opsional)"
-                value={headCheck.notes}
-                onChange={(e) => setHeadCheck({ ...headCheck, notes: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-purple-200 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Bagian Kepala Administrasi Umum */}
-            <div className="space-y-2.5 border border-cyan-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-cyan-800 uppercase tracking-wider">3. Kepala Administrasi Umum</span>
-                {hasStageSigned(selectedLoan, 'admin_umum') && (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                    Sudah ditandatangani ({selectedLoan.admin_umum_approved_by})
-                  </span>
-                )}
-              </div>
-              <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={adminUmumCheck.administration_approved}
-                  onChange={(e) => setAdminUmumCheck({ ...adminUmumCheck, administration_approved: e.target.checked })}
-                  className="w-4 h-4 text-cyan-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-700">
-                  Administrasi peminjaman, tujuan kegiatan, dan dokumen pendukung telah diperiksa.
-                </span>
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Catatan administrasi (opsional)"
-                value={adminUmumCheck.notes}
-                onChange={(e) => setAdminUmumCheck({ ...adminUmumCheck, notes: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-cyan-200 text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="pt-2 flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleJointSubmit('APPROVE')}
-                className="flex-1 py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Setujui Bersama
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleJointSubmit('REJECT')}
-                className="py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <XCircle className="w-4 h-4" />
-                Tolak
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {adminUmumModalOpen && selectedLoan && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-cyan-700 uppercase tracking-wider">
-                  Persetujuan Bersama (Administrasi Umum)
+                  Persetujuan Kepala Administrasi Umum
                 </span>
                 <h3 className="text-lg font-bold text-slate-900">Persetujuan Administrasi Umum</h3>
               </div>
@@ -1052,7 +839,7 @@ function PeminjamanContent() {
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
-                  Persetujuan Bersama (Verifikasi Staff)
+                  Verifikasi Staff Sarpras
                 </span>
                 <h3 className="text-lg font-bold text-slate-900">
                   Checklist Kelaikan Sarpras
@@ -1181,7 +968,7 @@ function PeminjamanContent() {
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">
-                  Persetujuan Bersama (Kepala Bagian Sarpras)
+                  Persetujuan Kepala Bagian Sarpras
                 </span>
                 <h3 className="text-lg font-bold text-slate-900">
                   Keputusan Izin Peminjaman

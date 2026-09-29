@@ -180,9 +180,9 @@ where category in ('VEHICLE', 'ROOM', 'BUILDING')
    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%projector%'
    or lower(coalesce(name, '') || ' ' || coalesce(location, '') || ' ' || coalesce(specs, '')) like '%kabel%';
 
--- Persetujuan peminjaman dilakukan BERSAMA: Staff, Kepala Bagian Sarpras, dan Kepala
--- Administrasi Umum menandatangani pengajuan yang sama tanpa urutan tetap.
--- Satu-satunya status menunggu adalah PENDING_APPROVAL; status lama dimigrasikan di bawah.
+-- Persetujuan peminjaman dilakukan terpisah: Staff, Kepala Bagian Sarpras, dan Kepala
+-- Administrasi Umum masing-masing menandatangani pengajuan yang sama tanpa saling
+-- menunggu. Satu-satunya status menunggu adalah PENDING_APPROVAL.
 insert into loan_requests (id, ticket_code, borrower_name, borrower_id, borrower_role, borrower_phone, borrower_email, asset_id, start_date, start_time, end_date, end_time, purpose, destination, driver_needed, status, staff_notes, staff_checklist, staff_verified_at, staff_verified_by, created_at)
 values
   ('loan_sample_1', 'SARPRAS-2026-0001', 'Dimas Arya Wardhana', '22051204055', 'Ormawa/UKM', '081234567890', 'dimas.arya@mhs.ac.id', 'ast_car_1', '2026-09-12', '07:00', '2026-09-13', '21:00', 'Kegiatan Pengabdian Masyarakat & Bakti Sosial BEM Fakultas di Desa Binaan Sukamaju', 'Kec. Sukamaju, Kab. Bogor', true, 'PENDING_APPROVAL', null, null, null, null, '2026-09-08 09:30:00+07'),
