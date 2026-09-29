@@ -57,20 +57,34 @@ Nilai ini dapat diatur dari form aset, form impor CSV, dan API. Endpoint `GET /a
 
 ## Alur Peminjaman
 
-Tiap pihak menyetujui **sendiri-sendiri** sesuai-checkbox masing-masing, tanpa harus menunggu pihak lain. Staff Sarpras, Kepala Bagian Sarpras, dan Kepala Administrasi Umum masing-masing menandatangani pengajuan yang sama, dan **tidak saling menunggu**.
+Tiap pihak menyetujui **sendiri-sendiri** sesuai checkbox miliknya, tanpa harus menunggu pihak lain, dan **tidak saling menggantikan**.
+
+### Pemisahan kewenangan
+
+Setiap checklist hanya boleh diisi oleh akun pemiliknya:
+
+| Checklist | Akun yang berwenang |
+| --- | --- |
+| Verifikasi Staff Sarpras | `STAFF_SARPRAS` |
+| Persetujuan Kepala Bagian Sarpras | `KEPALA_SARPRAS` |
+| Persetujuan Kepala Administrasi Umum | `KEPALA_ADMIN_UMUM` |
+
+Staff Sarpras tidak dapat menyetujui checklist Kepala, dan Kepala Bagian tidak dapat menyetujui checklist Administrasi Umum. Role `ADMIN` tetap dapat menutupi seluruh tahap sebagai kewenangan cadangan, tetapi antarmuka menampilkan peringatan konfirmasi lebih dulu, dan tanda tangannya tetap tercatat atas namanya sendiri.
+
+### Tahapan
 
 1. Pemohon mengisi formulir peminjaman dan menerima kode tiket.
 2. Pengajuan menunggu di status `PENDING_APPROVAL` sampai tiga tanda tangan terkumpul.
 3. Setiap pihak bisa langsung menyetujui atau menolak kapan saja, dalam urutan apa pun. Kepala Bagian tidak perlu menunggu checklist staff selesai, dan sebaliknya.
-4. Setelah Staff, Kepala Bagian, dan Kepala Administrasi Umum semuanya menyetujui, status otomatis menjadi `APPROVED` dan pengajuan siap untuk serah terima.
+4. Setelah ketiga checklist terisi, peminjaman **langsung aktif** berstatus `IN_USE` dan aset ditandai `DIPINJAM`. Tidak ada lagi tahap Serah Terima terpisah.
 5. Bila satu pihak menolak, pengajuan langsung berstatus `REJECTED`.
 6. Setelah selesai digunakan, petugas mencatat pengembalian dan checklist kondisi akhir.
 
-Status yang digunakan antara lain `PENDING_APPROVAL`, `APPROVED`, `IN_USE`, `RETURNED`, dan `REJECTED`.
+Status yang digunakan antara lain `PENDING_APPROVAL`, `IN_USE`, `RETURNED`, dan `REJECTED`.
 
 ### Endpoint Persetujuan
 
-Setiap endpoint hanya menandatangani checkbox milik tahapnya sendiri, dan tercatat atas nama pengguna yang menekan tombol.
+Setiap endpoint hanya menandatangani checklist milik tahapnya sendiri, dan tercatat atas nama pengguna yang menekan tombol. Endpoint mengembalikan `403` bila diakses role yang tidak berhak.
 
 | Endpoint | Checkbox yang dicatat |
 | --- | --- |
@@ -78,7 +92,7 @@ Setiap endpoint hanya menandatangani checkbox milik tahapnya sendiri, dan tercat
 | `POST /api/loans/[ticket]/head-approve` | Persetujuan Kepala Bagian Sarpras |
 | `POST /api/loans/[ticket]/admin-approve` | Persetujuan Kepala Administrasi Umum |
 
-Ketiganya dapat diakses oleh `STAFF_SARPRAS`, `KEPALA_SARPRAS`, `KEPALA_ADMIN_UMUM`, dan `ADMIN` selama pengajuan masih berstatus menunggu, sehingga tidak ada lagi tahapan yang terkunci menunggu pihak sebelumnya.
+Ketiganya dapat diakses selama pengajuan masih berstatus menunggu, sehingga tidak ada lagi tahapan yang terkunci menunggu pihak sebelumnya.
 
 ## Menjalankan Project
 

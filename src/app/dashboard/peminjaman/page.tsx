@@ -4,14 +4,18 @@ import {
   APPROVAL_STAGES,
   APPROVAL_STAGE_META,
   APPROVER_ROLE_LABEL,
+  ApprovalStage,
   approvalProgressLabel,
+  canSignStage,
   hasStageSigned,
+  isOwnStage,
   isPendingApproval,
 } from '@/lib/loanApproval';
 import { OfficialLetterModal } from '@/components/OfficialLetterModal';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   Car,
   CheckCircle2,
@@ -77,6 +81,39 @@ interface AuthUser {
   role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS' | 'KEPALA_ADMIN_UMUM';
 }
 
+const STAGE_BUTTON_CLASS: Record<ApprovalStage, string> = {
+  staff: 'bg-amber-600 hover:bg-amber-700 text-white',
+  head: 'bg-purple-600 hover:bg-purple-700 text-white',
+  admin_umum: 'bg-cyan-600 hover:bg-cyan-700 text-white',
+};
+
+const STAGE_BUTTON_LABEL: Record<ApprovalStage, string> = {
+  staff: 'Checklist Staff',
+  head: 'Persetujuan Kepala',
+  admin_umum: 'Persetujuan Administrasi',
+};
+
+/**
+ * Peringatan bagi Administrator yang menandatangani checklist milik role lain.
+ * Pemisahan kewenangan tetap berlaku untuk Staff, Kepala Bagian, dan Kepala
+ * Administrasi Umum; hanya Administrator yang boleh acting sebagai cadangan.
+ */
+function CrossRoleWarning({ stage, userName }: { stage: ApprovalStage; userName: string }) {
+  const owner = APPROVER_ROLE_LABEL[APPROVAL_STAGE_META[stage].role];
+  return (
+    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-1">
+      <p className="font-bold flex items-center gap-1.5">
+        <AlertTriangle className="w-4 h-4 shrink-0" />
+        Perhatian: checklist ini milik {owner}
+      </p>
+      <p>
+        {APPROVAL_STAGE_META[stage].label} seharusnya diisi oleh akun {owner}. Anda sedang
+        menandatanganinya atas nama {userName}. Gunakan hanya bila {owner} berhalangan.
+      </p>
+    </div>
+  );
+}
+
 function PeminjamanContent() {
   const searchParams = useSearchParams();
   // Tab lama dipetakan ke tab antrean persetujuan agar tautan lama tetap bekerja.
@@ -94,7 +131,7 @@ function PeminjamanContent() {
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [headModalOpen, setHeadModalOpen] = useState(false);
   const [adminUmumModalOpen, setAdminUmumModalOpen] = useState(false);
-  const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
+  const [activeStage, setActiveStage] = useState<ApprovalStage | null>(null);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [letterModalOpen, setLetterModalOpen] = useState(false);
 
@@ -112,13 +149,6 @@ function PeminjamanContent() {
     priority_approved: true,
     schedule_approved: true,
     notes: '',
-  });
-
-  // Form Serah Terima: petugas / CS ruangan yang menerima sarpras
-  const [dispatchCheck, setDispatchCheck] = useState({
-    handover_to_name: '',
-    handover_to_nip: '',
-    handover_condition: 'BAIK',
   });
 
   const [adminUmumCheck, setAdminUmumCheck] = useState({
@@ -274,40 +304,6 @@ function PeminjamanContent() {
     }
   };
 
-  // Handle Dispatch (Handover keys/unit)
-  const handleDispatch = (loan: LoanItem) => {
-    setSelectedLoan(loan);
-    setDispatchModalOpen(true);
-    setActionError(null);
-  };
-
-  const handleDispatchConfirm = async () => {
-    if (!selectedLoan) return;
-    if (!dispatchCheck.handover_to_name.trim()) {
-      setActionError('Nama petugas / CS ruangan penerima wajib diisi untuk tercetak di Surat Peminjaman.');
-      return;
-    }
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      const res = await fetch(`/api/loans/${selectedLoan.ticket_code}/dispatch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dispatchCheck),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses serah terima');
-      setDispatchModalOpen(false);
-      setSelectedLoan(null);
-      setDispatchCheck({ handover_to_name: '', handover_to_nip: '', handover_condition: 'BAIK' });
-      await fetchData();
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : 'Gagal serah terima');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // Handle Return Submission
   const handleReturnSubmit = async () => {
     if (!selectedLoan) return;
@@ -393,7 +389,7 @@ function PeminjamanContent() {
           }`}
         >
           <Car className="w-4 h-4" />
-          <span>4. Sedang Digunakan & Serah Terima</span>
+          <span>2. Sedang Digunakan</span>
           {countActive > 0 && (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${activeTab === 'active' ? 'bg-blue-800 text-blue-100' : 'bg-blue-100 text-blue-800'}`}>
               {countActive}
@@ -410,7 +406,7 @@ function PeminjamanContent() {
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>5. Arsip & Riwayat ({countArchive})</span>
+          <span>3. Arsip & Riwayat ({countArchive})</span>
         </button>
       </div>
 
@@ -516,72 +512,52 @@ function PeminjamanContent() {
 
               {/* Action Buttons Column */}
               <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-48">
-                {/* Tiga tombol persetujuan terpisah: tiap pihak menandatangani sendiri,
-                    tanpa perlu menunggu pihak lain. */}
+                {/* Persetujuan terpisah per role: hanya akun pemilik checklist yang
+                    boleh menandatanganinya, dan tidak perlu menunggu pihak lain. */}
                 {isPendingApproval(loan.status) && (
                   <div className="flex flex-col gap-1.5">
-                    <button
-                      onClick={() => {
-                        setSelectedLoan(loan);
-                        setStaffModalOpen(true);
-                        setActionError(null);
-                      }}
-                      className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <CheckSquare className="w-4 h-4" />
-                      <span>Checklist Staff</span>
-                    </button>
+                    {APPROVAL_STAGES.map((stage) => {
+                      const meta = APPROVAL_STAGE_META[stage];
+                      const signed = hasStageSigned(loan, stage);
+                      const allowed = canSignStage(user?.role, stage);
+                      const own = isOwnStage(user?.role, stage);
+                      if (!allowed) return null;
 
-                    <button
-                      onClick={() => {
-                        setSelectedLoan(loan);
-                        setHeadModalOpen(true);
-                        setActionError(null);
-                      }}
-                      className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Persetujuan Kepala</span>
-                    </button>
+                      return (
+                        <button
+                          key={stage}
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setActionError(null);
+                            setActiveStage(stage);
+                            if (stage === 'staff') setStaffModalOpen(true);
+                            if (stage === 'head') setHeadModalOpen(true);
+                            if (stage === 'admin_umum') setAdminUmumModalOpen(true);
+                          }}
+                          className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                            STAGE_BUTTON_CLASS[stage]
+                          }`}
+                        >
+                          {signed ? <CheckCircle2 className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                          <span>
+                            {STAGE_BUTTON_LABEL[stage]}
+                            {signed ? ' (Ulangi)' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
 
-                    <button
-                      onClick={() => {
-                        setSelectedLoan(loan);
-                        setAdminUmumModalOpen(true);
-                        setActionError(null);
-                      }}
-                      className="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Persetujuan Administrasi</span>
-                    </button>
+                    {!APPROVAL_STAGES.some((stage) => canSignStage(user?.role, stage)) && (
+                      <p className="text-[10px] text-slate-400 text-center py-2 leading-relaxed">
+                        Menunggu checklist {APPROVAL_STAGES.filter((s) => !hasStageSigned(loan, s))
+                          .map((s) => APPROVAL_STAGE_META[s].shortLabel)
+                          .join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {/* Approved status: Dispatch / Handover */}
-                {loan.status === 'APPROVED' && (
-                  <>
-                    <button
-                      onClick={() => handleDispatch(loan)}
-                      className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Car className="w-4 h-4" />
-                      <span>Serah Terima Unit</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedLoan(loan);
-                        setLetterModalOpen(true);
-                      }}
-                      className="w-full py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Printer className="w-4 h-4 text-slate-500" />
-                      <span>Cetak Surat Izin</span>
-                    </button>
-                  </>
-                )}
-
-                {/* In Use status: Return checklist + print letter */}
+                {/* In Use: peminjaman aktif langsung setelah disetujui, tanpa serah terima */}
                 {loan.status === 'IN_USE' && (
                   <>
                     <button
@@ -608,7 +584,7 @@ function PeminjamanContent() {
                   </>
                 )}
 
-                {/* Archived items: View certificate */}
+                {/* Arsip: lihat dokumen */}
                 {['RETURNED', 'APPROVED', 'IN_USE'].includes(loan.status) && (
                   <button
                     onClick={() => {
@@ -654,6 +630,10 @@ function PeminjamanContent() {
               </div>
             )}
 
+            {user && activeStage && !isOwnStage(user.role, activeStage) && (
+              <CrossRoleWarning stage={activeStage} userName={user.name} />
+            )}
+
             <div className="bg-cyan-50 p-4 rounded-2xl border border-cyan-100 text-xs space-y-1.5">
               <p className="font-mono font-bold text-cyan-900">{selectedLoan.ticket_code}</p>
               <p className="font-bold text-slate-900">{selectedLoan.asset_name} ({selectedLoan.asset_code})</p>
@@ -695,7 +675,7 @@ function PeminjamanContent() {
                 className="flex-1 py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Setujui & Siapkan Serah Terima
+                Setujui & Tanda Tangani
               </button>
               <button
                 type="button"
@@ -705,377 +685,6 @@ function PeminjamanContent() {
               >
                 <XCircle className="w-4 h-4" />
                 Tolak
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Konfirmasi Serah Terima Sarpras */}
-      {dispatchModalOpen && selectedLoan && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="dispatch-modal-title"
-            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl"
-          >
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">
-                  Tahap Serah Terima
-                </span>
-                <h3 id="dispatch-modal-title" className="text-lg font-bold text-slate-900">
-                  Konfirmasi Serah Terima Unit / Kunci
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDispatchModalOpen(false)}
-                disabled={submitting}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold disabled:opacity-50"
-              >
-                Tutup
-              </button>
-            </div>
-
-            {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
-
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 space-y-2 text-xs">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-blue-800 font-bold">Nomor Tiket</span>
-                <span className="font-mono font-bold text-blue-950">{selectedLoan.ticket_code}</span>
-              </div>
-              <div className="border-t border-blue-100 pt-2">
-                <p className="font-bold text-slate-900">{selectedLoan.asset_name} ({selectedLoan.asset_code})</p>
-                <p className="text-slate-600 mt-1">Lokasi: {selectedLoan.asset_location}</p>
-              </div>
-              <p className="text-slate-600">
-                Pemohon: <span className="font-semibold text-slate-800">{selectedLoan.borrower_name}</span> ({selectedLoan.borrower_role})
-              </p>
-              <p className="text-slate-600">
-                Jadwal: <span className="font-semibold text-slate-800">{selectedLoan.start_date} ({selectedLoan.start_time}) s/d {selectedLoan.end_date} ({selectedLoan.end_time})</span>
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
-              Pastikan unit atau kunci sudah diserahkan kepada pemohon. Setelah dikonfirmasi, status peminjaman berubah menjadi <strong>sedang digunakan</strong>.
-            </div>
-
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Nama Petugas / CS Ruangan Penerima *
-                </label>
-                <input
-                  type="text"
-                  value={dispatchCheck.handover_to_name}
-                  onChange={(e) => setDispatchCheck({ ...dispatchCheck, handover_to_name: e.target.value })}
-                  placeholder="Contoh: Slamet Riyadi, CS Ruang E2.9"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-                <p className="text-[11px] text-slate-500">
-                  Nama ini otomatis tercetak pada kolom tanda tangan petugas / CS Ruangan di Surat Peminjaman.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">NIP / ID Petugas (opsional)</label>
-                  <input
-                    type="text"
-                    value={dispatchCheck.handover_to_nip}
-                    onChange={(e) => setDispatchCheck({ ...dispatchCheck, handover_to_nip: e.target.value })}
-                    placeholder="Contoh: 198705122011011002"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Kondisi Saat Diterima</label>
-                  <select
-                    value={dispatchCheck.handover_condition}
-                    onChange={(e) => setDispatchCheck({ ...dispatchCheck, handover_condition: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="BAIK">Baik</option>
-                    <option value="RUSAK_RINGAN">Rusak Ringan</option>
-                    <option value="RUSAK_BERAT">Rusak Berat</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDispatchModalOpen(false)}
-                disabled={submitting}
-                className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleDispatchConfirm}
-                disabled={submitting}
-                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md disabled:opacity-50"
-              >
-                {submitting ? 'Memproses...' : 'Konfirmasi Serah Terima'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 1: Checklist Verifikasi Staff Sarpras */}
-      {staffModalOpen && selectedLoan && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
-                  Verifikasi Staff Sarpras
-                </span>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Checklist Kelaikan Sarpras
-                </h3>
-              </div>
-              <button
-                onClick={() => setStaffModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-              >
-                Tutup
-              </button>
-            </div>
-
-            {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
-
-            {/* Loan info summary */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-xs space-y-1">
-              <p className="font-bold text-slate-800">{selectedLoan.asset_name} ({selectedLoan.asset_code})</p>
-              <p className="text-slate-600">Pemohon: {selectedLoan.borrower_name} ({selectedLoan.borrower_role})</p>
-              <p className="text-slate-600">Waktu: {selectedLoan.start_date} s/d {selectedLoan.end_date}</p>
-              <p className="text-slate-600">Agenda: {selectedLoan.purpose}</p>
-            </div>
-
-            {/* Checklist items */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                Daftar Checklist Pemeriksaan:
-              </span>
-
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={staffCheck.unit_available}
-                  onChange={(e) => setStaffCheck({ ...staffCheck, unit_available: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-800 font-medium">
-                  Unit sarpras berstatus siap jalan/pakai dan tidak bentrok jadwal kegiatan universitas.
-                </span>
-              </label>
-
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={staffCheck.physical_condition_ok}
-                  onChange={(e) => setStaffCheck({ ...staffCheck, physical_condition_ok: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-800 font-medium">
-                  Kondisi fisik sarpras telah diperiksa dan dalam keadaan baik (bersih, AC/mesin normal).
-                </span>
-              </label>
-
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={staffCheck.fuel_or_key_ready}
-                  onChange={(e) => setStaffCheck({ ...staffCheck, fuel_or_key_ready: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-800 font-medium">
-                  Kesiapan armada/ruang (BBM terisi / supir kampus siap / kunci ruangan siap di pool).
-                </span>
-              </label>
-
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={staffCheck.documents_complete}
-                  onChange={(e) => setStaffCheck({ ...staffCheck, documents_complete: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-800 font-medium">
-                  Kelengkapan identitas pemohon dan relevansi keperluan kegiatan kampus valid.
-                </span>
-              </label>
-            </div>
-
-            {/* Notes input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Catatan Verifikasi Staff</label>
-              <textarea
-                rows={2}
-                placeholder="Tulis catatan atau rekomendasi untuk Kepala Sarpras..."
-                value={staffCheck.notes}
-                onChange={(e) => setStaffCheck({ ...staffCheck, notes: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleStaffSubmit('FORWARD')}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Catat Tanda Tangan Staff</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleStaffSubmit('REJECT')}
-                className="py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <XCircle className="w-4 h-4" />
-                <span>Tolak Pengajuan</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: Persetujuan Kepala Bagian Sarpras */}
-      {headModalOpen && selectedLoan && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">
-                  Persetujuan Kepala Bagian Sarpras
-                </span>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Keputusan Izin Peminjaman
-                </h3>
-              </div>
-              <button
-                onClick={() => setHeadModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-              >
-                Tutup
-              </button>
-            </div>
-
-            {actionError && (
-              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{actionError}</span>
-              </div>
-            )}
-
-            {/* Status tanda tangan Staff Sarpras */}
-            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-xs space-y-1.5">
-              <div className="flex items-center justify-between text-blue-900 font-bold">
-                <span>Verifikasi Staff Sarpras:</span>
-                {hasStageSigned(selectedLoan, 'staff') ? (
-                  <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-bold">
-                    SUDAH TANDA TANGAN
-                  </span>
-                ) : (
-                  <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-bold">
-                    BELUM DITANDATANGANI
-                  </span>
-                )}
-              </div>
-              <p className="text-blue-800">
-                Staff PIC: <b className="text-blue-950">{selectedLoan.staff_verified_by || 'Belum ditandatangani'}</b>
-              </p>
-              {hasStageSigned(selectedLoan, 'staff') && (
-                <p className="text-slate-700 italic bg-white p-2 rounded-lg border border-blue-100 mt-1">
-                  &ldquo;{selectedLoan.staff_notes || 'Checklist fisik dan jadwal aman.'}&rdquo;
-                </p>
-              )}
-            </div>
-
-            {/* Head Checklist */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                Pertimbangan Kepala Sarpras:
-              </span>
-
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={headCheck.priority_approved}
-                  onChange={(e) => setHeadCheck({ ...headCheck, priority_approved: e.target.checked })}
-                  className="w-4 h-4 text-purple-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-800 font-medium">
-                  Menyetujui urgensi & skala prioritas kegiatan pemohon untuk universitas.
-                </span>
-              </label>
-
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={headCheck.schedule_approved}
-                  onChange={(e) => setHeadCheck({ ...headCheck, schedule_approved: e.target.checked })}
-                  className="w-4 h-4 text-purple-600 rounded mt-0.5"
-                />
-                <span className="text-xs text-slate-800 font-medium">
-                  Menyetujui penugasan armada / penguncian jadwal ruang pada tanggal terkait.
-                </span>
-              </label>
-            </div>
-
-            {/* Notes input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Disposisi / Pesan Resmi Kepala Sarpras</label>
-              <textarea
-                rows={2}
-                placeholder="Tuliskan arahan (misal: Disetujui, harap menjaga ketertiban sarpras)..."
-                value={headCheck.notes}
-                onChange={(e) => setHeadCheck({ ...headCheck, notes: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleHeadSubmit('APPROVE')}
-                className="flex-1 py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Setujui &amp; Tanda Tangani</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleHeadSubmit('REJECT')}
-                className="py-3 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <XCircle className="w-4 h-4" />
-                <span>Tolak</span>
               </button>
             </div>
           </div>

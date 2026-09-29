@@ -64,15 +64,38 @@ function isAllSigned(loan: Record<string, unknown>) {
   return APPROVAL_STAGES.every((stage) => Boolean(loan[APPROVAL_STAGE_META[stage].atField]));
 }
 
-/** Menyetapkan status menjadi APPROVED ketika tiga tanda tangan sudah lengkap. */
-async function finalizeWhenComplete(loanId: string) {
+/**
+ * Menutup pengajuan setelah tiga tanda tangan lengkap.
+ *
+ * Tidak ada lagi tahap Serah Terima terpisah: begitu seluruh pihak menyetujui,
+ * peminjaman langsung berstatus `IN_USE` (sedang dipinjam) dan aset ditandai
+ * `DIPINJAM` supaya tidak bisa dipinjam ulang.
+ */
+async function activateWhenComplete(loan: LoanApprovalRow) {
+  const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from('loan_requests')
-    .update({ status: 'APPROVED' })
-    .eq('id', loanId)
+    .update({ status: 'IN_USE', picked_up_at: now })
+    .eq('id', loan.id)
     .select('*')
     .single();
   if (error) throw error;
+
+  const { data: additionalItems } = await supabaseAdmin
+    .from('loan_request_items')
+    .select('asset_id')
+    .eq('loan_request_id', loan.id);
+  const assetIds = [loan.asset_id, ...(additionalItems || []).map((item) => item.asset_id)].filter(
+    (id): id is string => typeof id === 'string' && id.length > 0
+  );
+  if (assetIds.length > 0) {
+    const { error: assetError } = await supabaseAdmin
+      .from('assets')
+      .update({ status: 'DIPINJAM' })
+      .in('id', assetIds);
+    if (assetError) throw assetError;
+  }
+
   return data;
 }
 
@@ -117,8 +140,8 @@ export async function applyStageDecision(
   if (fetchError) throw fetchError;
 
   if (!isRejected && isAllSigned(updated)) {
-    const finalized = await finalizeWhenComplete(loan.id);
-    return { loan: finalized, isFullyApproved: true, signedCount: APPROVAL_STAGES.length };
+    const activated = await activateWhenComplete(loan);
+    return { loan: activated, isFullyApproved: true, signedCount: APPROVAL_STAGES.length };
   }
 
   return { loan: updated, isFullyApproved: false, signedCount: countApprovals(updated) };

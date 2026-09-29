@@ -119,7 +119,7 @@ export function awaitingStages(loan: ApprovalSnapshot | null | undefined): Appro
   return APPROVAL_STAGES.filter((stage) => !hasStageSigned(loan, stage));
 }
 
-/** Menentukan tahap yang boleh ditangani oleh role tertentu. Role ADMIN bebas memakai semua tahap. */
+/** Tahap yang menjadi kewenangan utama sebuah role. */
 export function stageForRole(role?: string | null): ApprovalStage | null {
   if (!role) return null;
   const found = APPROVAL_STAGES.find((stage) => APPROVAL_STAGE_META[stage].role === role);
@@ -127,13 +127,31 @@ export function stageForRole(role?: string | null): ApprovalStage | null {
 }
 
 /**
- * Semua pihak yang berwenang persetujuan boleh menandatangani tahap mana pun.
- * Karena persetujuan berjalan bersama, Kepala Bagian dan Kepala Administrasi Umum
- * tidak lagi menunggu hasil checklist Staff lebih dulu.
+ * Pemisahan kewenangan persetujuan.
+ *
+ * Checklist Staff hanya untuk `STAFF_SARPRAS`, checklist Kepala Bagian hanya untuk
+ * `KEPALA_SARPRAS`, dan checklist Administrasi hanya untuk `KEPALA_ADMIN_UMUM`.
+ * Tidak ada role yang boleh menandatangani checklist milik role lain.
+ *
+ * `ADMIN` tetap dapat menutupi seluruh tahap sebagai kewenangan cadangan,
+ * namun antarmuka menampilkan peringatan konfirmasi sebelum menandatangani tahap
+ * yang bukan miliknya.
  */
-export function canSignApprovals(role?: string | null): boolean {
-  if (!role) return false;
-  return role === 'ADMIN' || stageForRole(role) !== null;
+export function canSignStage(role?: string | null, stage?: ApprovalStage | null): boolean {
+  if (!role || !stage) return false;
+  if (role === 'ADMIN') return true;
+  return APPROVAL_STAGE_META[stage].role === role;
+}
+
+/** True bila tahap tersebut milik role pengguna sendiri, bukan lewat kewenangan ADMIN. */
+export function isOwnStage(role?: string | null, stage?: ApprovalStage | null): boolean {
+  if (!role || !stage) return false;
+  return APPROVAL_STAGE_META[stage].role === role;
+}
+
+/** Daftar tahap yang boleh ditangani oleh role tersebut. Kosong berarti tidak berwenang. */
+export function signableStages(role?: string | null): ApprovalStage[] {
+  return APPROVAL_STAGES.filter((stage) => canSignStage(role, stage));
 }
 
 export const APPROVER_ROLE_LABEL: Record<string, string> = {
@@ -142,6 +160,13 @@ export const APPROVER_ROLE_LABEL: Record<string, string> = {
   KEPALA_SARPRAS: 'Kepala Bagian Sarpras',
   KEPALA_ADMIN_UMUM: 'Kepala Administrasi Umum',
 };
+
+/** Pesan penolakan kewenangan yang dipakai bersama oleh ketiga endpoint persetujuan. */
+export function forbiddenStageMessage(stage: ApprovalStage) {
+  const stageLabel = APPROVAL_STAGE_META[stage].label;
+  const ownerLabel = APPROVER_ROLE_LABEL[APPROVAL_STAGE_META[stage].role];
+  return `Akses ditolak. ${stageLabel} hanya bisa diisi oleh ${ownerLabel}.`;
+}
 
 /** Ringkasan progres tanda tangan, mis. "2 dari 3 tanda tangan". */
 export function approvalProgressLabel(loan: ApprovalSnapshot | null | undefined): string {

@@ -190,7 +190,7 @@ function TrackingContent() {
       return 'inactive';
     }
 
-    // Step 5: Serah Terima / Penggunaan
+    // Step 5: Peminjaman aktif (langsung setelah disetujui, tanpa serah terima)
     if (stepIndex === 5) {
       if (loan.status === 'APPROVED') return 'ready';
       if (loan.status === 'IN_USE') return 'current';
@@ -446,9 +446,9 @@ function TrackingContent() {
                 }`}>
                   {getStepStatus(5) === 'completed' ? <CheckCircle2 className="w-5 h-5" /> : '5'}
                 </div>
-                <h4 className="font-bold text-xs">5. Serah Terima</h4>
+                <h4 className="font-bold text-xs">5. Sedang Dipinjam</h4>
                 <p className="text-[11px]">
-                  {loan.status === 'APPROVED' ? 'Siap Diambil' : loan.status === 'IN_USE' ? 'Sedang Digunakan' : 'Menunggu'}
+                  {loan.status === 'IN_USE' ? 'Sedang Digunakan' : loan.status === 'APPROVED' ? 'Siap Diambil' : 'Menunggu'}
                 </p>
               </div>
 

@@ -1,5 +1,10 @@
 import { getCurrentUser } from '@/lib/auth';
-import { APPROVER_ROLE_LABEL, APPROVAL_STAGES, canSignApprovals } from '@/lib/loanApproval';
+import {
+  APPROVAL_STAGES,
+  APPROVER_ROLE_LABEL,
+  canSignStage,
+  forbiddenStageMessage,
+} from '@/lib/loanApproval';
 import {
   ApprovalError,
   applyStageDecision,
@@ -12,17 +17,13 @@ interface Params {
   params: Promise<{ ticket: string }>;
 }
 
+const STAGE = 'staff' as const;
+
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const user = await getCurrentUser();
-    if (!canSignApprovals(user?.role)) {
-      return NextResponse.json(
-        {
-          error:
-            'Akses ditolak. Persetujuan hanya untuk Staff Sarpras, Kepala Bagian Sarpras, Kepala Administrasi Umum, atau Admin.',
-        },
-        { status: 403 }
-      );
+    if (!user || !canSignStage(user.role, STAGE)) {
+      return NextResponse.json({ error: forbiddenStageMessage(STAGE) }, { status: 403 });
     }
 
     const { ticket } = await params;
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         action === 'REJECT'
           ? `Pengajuan ditolak oleh ${actorLabel}.`
           : result.isFullyApproved
-          ? 'Checklist staff lengkap dan seluruh pihak telah menyetujui. Peminjaman siap untuk serah terima.'
+          ? 'Checklist staff lengkap dan seluruh pihak telah menyetujui. Peminjaman langsung aktif tanpa serah terima.'
           : `Checklist staff dicatat atas nama ${actorLabel}. Menunggu ${APPROVAL_STAGES.length - result.signedCount} persetujuan lagi.`,
       loan: result.loan,
     });
