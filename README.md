@@ -117,6 +117,8 @@ npm run start
 
 Project ini menggunakan Supabase PostgreSQL. Jalankan isi [supabase-schema.sql](supabase-schema.sql) melalui Supabase SQL Editor sebelum menggunakan API atau melakukan deployment.
 
+Untuk mengimpor data Kartu Inventaris Ruangan D1-D2 sekaligus, jalankan [supabase-import-inventaris-d1-d2.sql](supabase-import-inventaris-d1-d2.sql) di Supabase SQL Editor. Skrip ini mengisi tabel `assets`; jumlah barang disimpan pada kolom jumlah unit dan detail spesifikasi serta luas ruangan ikut disimpan. Kode inventaris yang berulang dalam file atau sudah ada di database dilewati, lalu ditampilkan pada hasil query. Untuk impor berikutnya, tambahkan baris pada bagian `insert into _kir_import_d1_d2 ... values` dan jalankan seluruh skrip kembali.
+
 Buat file `.env.local` dengan variabel berikut:
 
 ```env

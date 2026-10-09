@@ -35,6 +35,16 @@ interface Asset {
 }
 
 const ROOM_AREA: Record<string, string> = {
+  'D1.1 / R.MULTIMEDIA': '80 m²',
+  'D1.2 / PRODI S1 KEPERAWATAN': '80 m²',
+  'D1.3 / PRODI KESELAMATAN DAN KESEHATAN KERJA (K3)': '80 m²',
+  'D1.4 / PRODI DIII KEPERAWATAN': '80 m²',
+  'D1.5 / KELAS PERKULIAHAN': '80 m²',
+  'D2.1 / KELAS PERKULIAHAN': '80 m²',
+  'D2.2 / KELAS PERKULIAHAN': '80 m²',
+  'D2.3 / KELAS PERKULIAHAN': '80 m²',
+  'D2.4 / RUANG PERKULIAHAN': '80 m²',
+  'D2.5 / RUANG PERKULIAHAN': '80 m²',
   'Ruang D1.1 / R.MULTIMEDIA': '80 m²',
 };
 
@@ -43,11 +53,6 @@ function conditionLabel(c: string) {
   if (c === 'RUSAK_RINGAN') return 'Rusak Ringan';
   if (c === 'RUSAK_BERAT') return 'Rusak Berat';
   return c;
-}
-
-function formatRupiah(n: number) {
-  if (!n) return '-';
-  return 'Rp ' + n.toLocaleString('id-ID');
 }
 
 export default function InventarisPublikPage() {
@@ -113,7 +118,9 @@ export default function InventarisPublikPage() {
     ? filtered.filter(a => a.building === selectedBuilding && a.room === selectedRoom)
     : [];
 
-  const kirArea = (selectedRoom !== 'ALL' && ROOM_AREA[selectedRoom]) ? ROOM_AREA[selectedRoom] : '—';
+  const kirArea = (selectedRoom !== 'ALL' && ROOM_AREA[selectedRoom])
+    ? ROOM_AREA[selectedRoom]
+    : ((selectedRoom !== 'ALL' && selectedRoom.includes('Ruang')) ? '80 m²' : '—');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -208,85 +215,52 @@ export default function InventarisPublikPage() {
       {kirMode && selectedBuilding !== 'ALL' && selectedRoom !== 'ALL' && kirRoomAssets.length > 0 && (
         <div className="bg-white border-2 border-slate-300 rounded-3xl overflow-hidden shadow-lg print:shadow-none print:border print:rounded-none print:max-w-full">
           {/* KIR Header / Kop */}
-          <div className="bg-blue-900 text-white px-8 py-5 flex items-center gap-5 print:bg-blue-900">
-            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shrink-0">
-              <Building2 className="w-8 h-8 text-blue-900" />
-            </div>
-            <div>
-              <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest">Yayasan Pendidikan Tri Sanja Husada</p>
-              <h2 className="text-xl font-extrabold leading-tight">UNIVERSITAS BHAMADA SLAWI</h2>
-              <p className="text-blue-200 text-xs mt-0.5">Jl. Cut Nyak Dhien No. 16, Kagok-Slawi, Kab. Tegal — Telp. (0283) 491164</p>
-            </div>
-          </div>
-
-          {/* KIR Title Block */}
-          <div className="border-b-2 border-slate-200 px-8 py-4 bg-slate-50">
-            <h3 className="text-center font-extrabold text-lg text-slate-900 uppercase tracking-wide">
-              KARTU INVENTARIS RUANGAN (KIR)
-            </h3>
-            <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
-              <div className="space-y-1">
-                <p className="text-slate-500 text-xs font-semibold uppercase">Gedung</p>
-                <p className="font-bold text-slate-900">{selectedBuilding}</p>
+          <div className="border-b-[3px] border-slate-900 px-8 py-4 bg-white">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full border-2 border-slate-900 bg-emerald-50 flex items-center justify-center text-[10px] font-black text-slate-800">
+                  UB
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-600 uppercase tracking-[0.25em]">Universitas Bhamada Slawi</p>
+                  <h2 className="text-2xl font-black tracking-tight text-slate-900">KARTU INVENTARIS RUANGAN</h2>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-slate-500 text-xs font-semibold uppercase">Ruang / No. Ruang</p>
-                <p className="font-bold text-slate-900">{selectedRoom}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-slate-500 text-xs font-semibold uppercase">Luas Ruangan</p>
-                <p className="font-bold text-slate-900">{kirArea}</p>
+              <div className="text-right text-[10px] text-slate-600">
+                <p>Gedung : {selectedBuilding}</p>
+                <p>Ruang : {selectedRoom}</p>
+                <p>Luas Ruang : {kirArea}</p>
               </div>
             </div>
           </div>
 
           {/* KIR Table */}
           <div className="px-8 py-4 overflow-x-auto">
-            <table className="w-full text-xs border border-slate-300">
+            <table className="w-full text-[11px] border border-slate-300">
               <thead>
-                <tr className="bg-blue-900 text-white">
-                  <th className="border border-blue-700 px-3 py-2 text-center font-bold">No.</th>
-                  <th className="border border-blue-700 px-3 py-2 text-left font-bold">Kode Barang</th>
-                  <th className="border border-blue-700 px-3 py-2 text-left font-bold">Nama / Jenis Barang</th>
-                  <th className="border border-blue-700 px-3 py-2 text-left font-bold">Merk / Spesifikasi</th>
-                  <th className="border border-blue-700 px-3 py-2 text-center font-bold">Jml</th>
-                  <th className="border border-blue-700 px-3 py-2 text-center font-bold">Sumber Dana</th>
-                  <th className="border border-blue-700 px-3 py-2 text-center font-bold">Th. Perolehan</th>
-                  <th className="border border-blue-700 px-3 py-2 text-right font-bold">Harga Perolehan</th>
-                  <th className="border border-blue-700 px-3 py-2 text-right font-bold">Nilai Buku</th>
-                  <th className="border border-blue-700 px-3 py-2 text-center font-bold">Keadaan</th>
+                <tr className="bg-slate-900 text-white">
+                  <th className="border border-slate-700 px-2 py-2 text-center font-bold">No</th>
+                  <th className="border border-slate-700 px-2 py-2 text-center font-bold">Kode Inventaris</th>
+                  <th className="border border-slate-700 px-2 py-2 text-left font-bold">Nama Barang</th>
+                  <th className="border border-slate-700 px-2 py-2 text-center font-bold">Jumlah</th>
+                  <th className="border border-slate-700 px-2 py-2 text-left font-bold">Spesifikasi</th>
+                  <th className="border border-slate-700 px-2 py-2 text-center font-bold">Tahun Perolehan</th>
+                  <th className="border border-slate-700 px-2 py-2 text-center font-bold">Keterangan</th>
                 </tr>
               </thead>
               <tbody>
                 {kirRoomAssets.map((asset, idx) => (
                   <tr key={asset.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                    <td className="border border-slate-200 px-3 py-2 text-center">{idx + 1}</td>
-                    <td className="border border-slate-200 px-3 py-2 font-mono text-[10px]">{asset.code}</td>
-                    <td className="border border-slate-200 px-3 py-2 font-semibold">{asset.name}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-slate-600 max-w-[160px] truncate" title={asset.specs}>{asset.specs || '-'}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center font-bold">{asset.capacity || 1}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center">{asset.funding_source || '-'}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center">{asset.purchase_year || '-'}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right">{formatRupiah(asset.purchase_price)}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right">{formatRupiah(asset.book_value)}</td>
-                    <td className={`border border-slate-200 px-3 py-2 text-center font-semibold ${
-                      asset.condition === 'BAIK' ? 'text-emerald-700' : 'text-rose-600'
-                    }`}>
-                      {conditionLabel(asset.condition)}
-                    </td>
+                    <td className="border border-slate-300 px-2 py-2 text-center align-top">{idx + 1}</td>
+                    <td className="border border-slate-300 px-2 py-2 text-center font-mono align-top">{asset.code}</td>
+                    <td className="border border-slate-300 px-2 py-2 align-top font-medium">{asset.name}</td>
+                    <td className="border border-slate-300 px-2 py-2 text-center align-top font-bold">{asset.capacity || 1}</td>
+                    <td className="border border-slate-300 px-2 py-2 align-top text-slate-600" title={asset.specs}>{asset.specs || '-'}</td>
+                    <td className="border border-slate-300 px-2 py-2 text-center align-top">{asset.purchase_year || '-'}</td>
+                    <td className="border border-slate-300 px-2 py-2 text-center align-top font-semibold text-emerald-700">{conditionLabel(asset.condition)}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="bg-blue-50 font-bold">
-                  <td colSpan={4} className="border border-slate-300 px-3 py-2 text-right font-bold">TOTAL</td>
-                  <td className="border border-slate-300 px-3 py-2 text-center">{kirRoomAssets.reduce((s, a) => s + (a.capacity || 1), 0)}</td>
-                  <td colSpan={2} className="border border-slate-300 px-3 py-2"></td>
-                  <td className="border border-slate-300 px-3 py-2 text-right">{formatRupiah(kirRoomAssets.reduce((s, a) => s + (a.purchase_price || 0), 0))}</td>
-                  <td className="border border-slate-300 px-3 py-2 text-right">{formatRupiah(kirRoomAssets.reduce((s, a) => s + (a.book_value || 0), 0))}</td>
-                  <td className="border border-slate-300 px-3 py-2"></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
 
@@ -296,14 +270,14 @@ export default function InventarisPublikPage() {
               <div>
                 <p className="font-semibold text-slate-600 mb-16">Ka. BAU</p>
                 <div className="border-b border-slate-400 mb-1"></div>
-                <p className="font-bold text-slate-900">Sidiq Pranoto, S.Kep., Ns., M.Kep</p>
-                <p className="text-slate-500 text-[10px] mt-0.5">Kepala Biro Administrasi Umum</p>
+                <p className="font-bold text-slate-900">Sidiq Pranoto, SE</p>
+                <p className="text-slate-500 text-[10px] mt-0.5">NIPY : 1973.10.03.00.016</p>
               </div>
               <div>
-                <p className="font-semibold text-slate-600 mb-16">Pjs. Kasubag Sarpras</p>
+                <p className="font-semibold text-slate-600 mb-16">Kasubag Sarpras</p>
                 <div className="border-b border-slate-400 mb-1"></div>
-                <p className="font-bold text-slate-900">null</p>
-                <p className="text-slate-500 text-[10px] mt-0.5">Pj. Kasubag Sarana & Prasarana</p>
+                <p className="font-bold text-slate-900">Umi Salamah</p>
+                <p className="text-slate-500 text-[10px] mt-0.5">NIPY : 1969.12.07.96.004</p>
               </div>
             </div>
           </div>
