@@ -83,7 +83,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-500 shrink-0" />
-                <span>Hotline WA: 0812-3456-7890 (Jam Kerja)</span>
+                <span>Hotline WA: - (Jam Kerja)</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-slate-500 shrink-0" />

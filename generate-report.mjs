@@ -176,7 +176,7 @@ const sections = [
         spacing: { after: 100 },
       }),
       new Paragraph({
-        children: [bold('(Dwipa Ari Putra, S.Kom – Pjs. Kasubag Sarpras)', 24)],
+        children: [bold('( – Pjs. Kasubag Sarpras)', 24)],
         alignment: AlignmentType.CENTER,
         spacing: { after: 600 },
       }),
@@ -309,7 +309,7 @@ const sections = [
           ['Institusi', 'Universitas Bhamada Slawi (Yayasan Pendidikan Tri Sanja Husada)'],
           ['Pengelola', 'Bagian Sarana dan Prasarana (BAU)'],
           ['Kepala BAU', 'Sidiq Pranoto, S.Kep., Ns., M.Kep'],
-          ['Pjs. Kasubag Sarpras', 'Dwipa Ari Putra, S.Kom'],
+          ['Pjs. Kasubag Sarpras', ', S.Kom'],
           ['Versi', '1.0.0 (Beta)'],
           ['Tanggal Laporan', tanggal],
           ['Platform', 'Web Application (dapat diakses dari browser tanpa instalasi)'],
@@ -626,7 +626,7 @@ const sections = [
         spacing: { after: 800 },
       }),
       new Paragraph({
-        children: [bold('Dwipa Ari Putra, S.Kom', 24)],
+        children: [bold(', S.Kom', 24)],
         alignment: AlignmentType.RIGHT,
         spacing: { after: 80 },
       }),
