@@ -30,6 +30,11 @@ body {
     margin: 8mm;
   }
 
+  @page kir {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
   html,
   body {
     height: auto !important;
@@ -46,6 +51,36 @@ body {
   .print-letter,
   .print-letter * {
     visibility: visible !important;
+  }
+
+  .print-kir,
+  .print-kir * {
+    visibility: visible !important;
+  }
+
+  .print-kir {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    border: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+    page: kir;
+  }
+
+  .kir-document {
+    width: 100% !important;
+    color: #000 !important;
+    font-family: "Times New Roman", serif !important;
+    font-size: 10pt !important;
+  }
+
+  .kir-document tr {
+    break-inside: avoid;
   }
 
   .print-letter {

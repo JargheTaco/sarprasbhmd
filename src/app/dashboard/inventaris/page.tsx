@@ -13,6 +13,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
+import Image from 'next/image';
 import React, { useEffect, useMemo, useState } from 'react';
 
 interface Asset {
@@ -41,6 +42,12 @@ interface Asset {
 
 interface CurrentUser {
   role: 'ADMIN' | 'STAFF_SARPRAS' | 'KEPALA_SARPRAS';
+}
+
+interface KirSelection {
+  building: string;
+  room: string;
+  assets: Asset[];
 }
 
 const CATEGORIES = [
@@ -103,6 +110,8 @@ export default function InventarisPage() {
   const [selectedAssetType, setSelectedAssetType] = useState('ALL');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
+  const [kirSelection, setKirSelection] = useState<KirSelection | null>(null);
+  const [kirLoadingRoom, setKirLoadingRoom] = useState<string | null>(null);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -215,6 +224,26 @@ export default function InventarisPage() {
     });
     setErrorMsg(null);
     setModalOpen(true);
+  };
+
+  const handleOpenKir = async (building: string, room: string) => {
+    setKirLoadingRoom(`${building}:${room}`);
+    setErrorMsg(null);
+    try {
+      const params = new URLSearchParams({
+        asset_type: 'INVENTARIS',
+        building,
+        room,
+      });
+      const res = await fetch(`/api/assets?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat data KIR');
+      setKirSelection({ building, room, assets: data.assets || [] });
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : 'Gagal memuat data KIR');
+    } finally {
+      setKirLoadingRoom(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -468,6 +497,104 @@ export default function InventarisPage() {
         </select>
       </div>
 
+      {kirSelection && (
+        <section className="print-kir rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Pratinjau Kartu Inventaris Ruangan</h2>
+              <p className="text-xs text-slate-500">Data KIR lengkap untuk ruang yang dipilih.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700"
+              >
+                <Printer className="h-4 w-4" />
+                Cetak KIR
+              </button>
+              <button
+                type="button"
+                onClick={() => setKirSelection(null)}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+
+          <div className="kir-document font-serif text-black">
+            <header className="relative flex min-h-[78px] items-center justify-center border-b-[3px] border-double border-black px-20 pb-2 text-center">
+              <Image
+                src="/logo-universitas.png"
+                alt="Logo Universitas Bhamada Slawi"
+                width={64}
+                height={64}
+                className="absolute left-2 top-1 h-14 w-14 object-contain"
+              />
+              <div>
+                <h3 className="text-xl font-bold uppercase tracking-wide">Universitas Bhamada Slawi</h3>
+                <p className="text-[11px]">Jl. Cut Nyak Dien, No. 16 Kalisapu Slawi. Telp. (0283) 3317706</p>
+                <p className="text-[11px]">Slawi - Kab. Tegal</p>
+              </div>
+            </header>
+
+            <div className="grid grid-cols-[100px_1fr] gap-x-2 py-3 text-sm">
+              <span>Gedung</span><span>: {kirSelection.building.replace(/^Gedung\s*/i, '')}</span>
+              <span>Ruang</span><span>: {kirSelection.room}</span>
+              <span>Luas Ruang</span><span>: 80 m2</span>
+            </div>
+
+            {kirSelection.assets.length === 0 ? (
+              <p className="border border-slate-400 py-5 text-center text-sm">
+                Belum ada aset Inventaris Aset pada ruangan ini.
+              </p>
+            ) : (
+              <table className="w-full border-collapse text-[11px]">
+                <thead>
+                  <tr>
+                    {['No', 'Kode Inventaris', 'Nama Barang', 'Jumlah', 'Spesifikasi', 'Tahun Perolehan', 'Keterangan'].map((heading) => (
+                      <th key={heading} className="border border-black px-2 py-1 text-center font-bold">{heading}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {kirSelection.assets.map((asset, index) => (
+                    <tr key={asset.id}>
+                      <td className="border border-black px-2 py-1 text-center">{index + 1}</td>
+                      <td className="border border-black px-2 py-1 text-center font-mono">{asset.code}</td>
+                      <td className="border border-black px-2 py-1">{asset.name}</td>
+                      <td className="border border-black px-2 py-1 text-center">{asset.capacity || 1}</td>
+                      <td className="border border-black px-2 py-1">{asset.specs || '-'}</td>
+                      <td className="border border-black px-2 py-1 text-center">{asset.purchase_year || '-'}</td>
+                      <td className="border border-black px-2 py-1 text-center">{asset.condition === 'BAIK' ? 'Baik' : asset.condition}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div className="mt-4 grid grid-cols-2 gap-8 text-center text-[11px]">
+              <div>
+                <p>Ka. BAU</p>
+                <div className="h-16" />
+                <p className="font-bold underline">Sidiq Pranoto, SE</p>
+                <p>NIPY : 1973.10.03.00.016</p>
+              </div>
+              <div>
+                <p>Kasubag Sarpras</p>
+                <div className="h-16" />
+                <p className="font-bold underline">Umi Salamah</p>
+                <p>NIPY : 1969.12.07.96.004</p>
+              </div>
+            </div>
+            <p className="mt-8 text-center text-[10px] italic">
+              Daftar Inventaris Sarana Prasarana Universitas Bhamada
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* Table grouped by gedung & ruang */}
       {loading ? (
         <div className="text-center py-12 text-slate-400 text-sm">Memuat data inventaris...</div>
@@ -521,11 +648,22 @@ export default function InventarisPage() {
                       return (
                         <div key={room}>
                           {/* Room sub-header */}
-                          <div className="px-5 py-2 bg-slate-50 flex items-center justify-between">
+                          <div className="px-5 py-2 bg-slate-50 flex items-center justify-between gap-3">
                             <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">{room}</p>
-                            <span className="text-[10px] bg-slate-200 text-slate-600 rounded-full px-2 py-0.5 font-semibold">
-                              {roomAssets.length} barang
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] bg-slate-200 text-slate-600 rounded-full px-2 py-0.5 font-semibold">
+                                {roomAssets.length} barang
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenKir(building, room)}
+                                disabled={kirLoadingRoom === `${building}:${room}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-2 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
+                              >
+                                <Printer className="h-3 w-3" />
+                                {kirLoadingRoom === `${building}:${room}` ? 'Memuat...' : 'KIR / Cetak'}
+                              </button>
+                            </div>
                           </div>
 
                           {/* Table */}
