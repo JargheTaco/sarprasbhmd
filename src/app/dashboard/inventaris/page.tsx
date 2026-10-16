@@ -50,6 +50,11 @@ interface KirSelection {
   assets: Asset[];
 }
 
+interface AssetLocation {
+  building: string;
+  room: string;
+}
+
 const CATEGORIES = [
   { value: 'ALL', label: 'Semua Kategori' },
   { value: 'ELECTRONIC', label: 'Elektronik Pembelajaran' },
@@ -119,6 +124,9 @@ export default function InventarisPage() {
   const [formData, setFormData] = useState({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [assetLocations, setAssetLocations] = useState<AssetLocation[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<
     | { type: 'asset'; asset: Asset }
     | { type: 'building'; building: string; assetCount: number }
@@ -183,6 +191,50 @@ export default function InventarisPage() {
   }, [assets]);
 
   const buildings = Object.keys(grouped).sort();
+  const buildingOptions = useMemo(
+    () => [...new Set(assetLocations.map(({ building }) => building))].sort(),
+    [assetLocations]
+  );
+  const roomOptions = useMemo(
+    () => [...new Set(
+      assetLocations
+        .filter(({ building }) => building === formData.building)
+        .map(({ room }) => room)
+    )].sort(),
+    [assetLocations, formData.building]
+  );
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    let cancelled = false;
+
+    const loadAssetLocations = async () => {
+      setLocationsLoading(true);
+      setLocationsError(null);
+      try {
+        const res = await fetch('/api/assets?locations=true');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal memuat daftar gedung dan ruang');
+        if (!Array.isArray(data.locations)) {
+          throw new Error('Format daftar gedung dan ruang tidak valid');
+        }
+        if (!cancelled) setAssetLocations(data.locations);
+      } catch (error: unknown) {
+        if (!cancelled) {
+          setLocationsError(
+            error instanceof Error ? error.message : 'Gagal memuat daftar gedung dan ruang'
+          );
+        }
+      } finally {
+        if (!cancelled) setLocationsLoading(false);
+      }
+    };
+
+    loadAssetLocations();
+    return () => {
+      cancelled = true;
+    };
+  }, [modalOpen]);
 
   const toggleBuilding = (b: string) => {
     setExpandedBuildings(prev => {
@@ -834,24 +886,40 @@ export default function InventarisPage() {
                   <input
                     type="text"
                     required
+                    list="asset-building-options"
                     placeholder="Contoh: Gedung D1"
                     value={formData.building}
                     onChange={e => setFormData({ ...formData, building: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <datalist id="asset-building-options">
+                    {buildingOptions.map(building => <option key={building} value={building} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700">Ruang / Kelas *</label>
                   <input
                     type="text"
                     required
+                    list="asset-room-options"
                     placeholder="Contoh: Ruang D1.1 / R.MULTIMEDIA"
                     value={formData.room}
                     onChange={e => setFormData({ ...formData, room: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <datalist id="asset-room-options">
+                    {roomOptions.map(room => <option key={room} value={room} />)}
+                  </datalist>
                 </div>
               </div>
+              {locationsLoading && (
+                <p className="text-[10px] text-slate-500">Memuat pilihan gedung dan ruang...</p>
+              )}
+              {locationsError && (
+                <p role="alert" className="text-[10px] text-rose-600">
+                  {locationsError}. Lokasi tetap bisa diketik manual.
+                </p>
+              )}
 
               {/* Row 4: Jumlah + Sumber Dana */}
               <div className="grid grid-cols-2 gap-3">

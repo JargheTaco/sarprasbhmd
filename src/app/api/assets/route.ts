@@ -21,6 +21,35 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('q');
     const loanableOnly = searchParams.get('loanable') === 'true';
 
+    if (searchParams.get('locations') === 'true') {
+      const { data, error } = await supabaseAdmin
+        .from('assets')
+        .select('building, room')
+        .order('building', { ascending: true })
+        .order('room', { ascending: true });
+      if (error) throw error;
+
+      const locations = new Map<string, { building: string; room: string }>();
+      for (const asset of data || []) {
+        const locationBuilding = asset.building?.trim();
+        const locationRoom = asset.room?.trim();
+        if (
+          !locationBuilding ||
+          !locationRoom ||
+          locationBuilding === 'Belum Ditentukan' ||
+          locationRoom === 'Belum Ditentukan'
+        ) {
+          continue;
+        }
+        locations.set(JSON.stringify([locationBuilding, locationRoom]), {
+          building: locationBuilding,
+          room: locationRoom,
+        });
+      }
+
+      return NextResponse.json({ success: true, locations: [...locations.values()] });
+    }
+
     if (assetType && assetType !== 'ALL' && !isAssetType(assetType)) {
       return NextResponse.json({ error: 'Jenis katalog aset tidak valid' }, { status: 400 });
     }
