@@ -55,6 +55,92 @@ interface AssetLocation {
   room: string;
 }
 
+interface LocationComboboxProps {
+  id: string;
+  label: string;
+  value: string;
+  options: string[];
+  placeholder: string;
+  loading: boolean;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}
+
+function LocationCombobox({
+  id,
+  label,
+  value,
+  options,
+  placeholder,
+  loading,
+  disabled = false,
+  onChange,
+}: LocationComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const filteredOptions = options.filter(option =>
+    option.toLocaleLowerCase('id-ID').includes(value.trim().toLocaleLowerCase('id-ID'))
+  );
+
+  return (
+    <div className="relative space-y-1">
+      <label htmlFor={id} className="font-bold text-slate-700">{label}</label>
+      <input
+        id={id}
+        type="text"
+        required
+        autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open && filteredOptions.length > 0}
+        aria-controls={`${id}-options`}
+        placeholder={placeholder}
+        value={value}
+        disabled={disabled}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        onChange={event => {
+          onChange(event.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Escape') setOpen(false);
+          if (event.key === 'ArrowDown' && filteredOptions.length > 0) setOpen(true);
+        }}
+        className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+      />
+      {open && filteredOptions.length > 0 && (
+        <div
+          id={`${id}-options`}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        >
+          {filteredOptions.map(option => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={option === value}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && loading && (
+        <p className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg">
+          Memuat pilihan...
+        </p>
+      )}
+    </div>
+  );
+}
+
 const CATEGORIES = [
   { value: 'ALL', label: 'Semua Kategori' },
   { value: 'ELECTRONIC', label: 'Elektronik Pembelajaran' },
@@ -881,44 +967,35 @@ export default function InventarisPage() {
 
               {/* Row 3: Gedung + Ruang */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Gedung *</label>
-                  <input
-                    type="text"
-                    required
-                    list="asset-building-options"
-                    placeholder="Contoh: Gedung D1"
-                    value={formData.building}
-                    onChange={e => setFormData({ ...formData, building: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <datalist id="asset-building-options">
-                    {buildingOptions.map(building => <option key={building} value={building} />)}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Ruang / Kelas *</label>
-                  <input
-                    type="text"
-                    required
-                    list="asset-room-options"
-                    placeholder="Contoh: Ruang D1.1 / R.MULTIMEDIA"
-                    value={formData.room}
-                    onChange={e => setFormData({ ...formData, room: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <datalist id="asset-room-options">
-                    {roomOptions.map(room => <option key={room} value={room} />)}
-                  </datalist>
-                </div>
+                <LocationCombobox
+                  id="asset-building"
+                  label="Gedung *"
+                  value={formData.building}
+                  options={buildingOptions}
+                  placeholder="Ketik atau pilih gedung"
+                  loading={locationsLoading}
+                  onChange={building => setFormData({ ...formData, building, room: '' })}
+                />
+                <LocationCombobox
+                  id="asset-room"
+                  label="Ruang / Kelas *"
+                  value={formData.room}
+                  options={roomOptions}
+                  placeholder="Ketik atau pilih ruang / kelas"
+                  loading={locationsLoading}
+                  onChange={room => setFormData({ ...formData, room })}
+                />
               </div>
               {locationsLoading && (
                 <p className="text-[10px] text-slate-500">Memuat pilihan gedung dan ruang...</p>
               )}
               {locationsError && (
                 <p role="alert" className="text-[10px] text-rose-600">
-                  {locationsError}. Lokasi tetap bisa diketik manual.
+                  Gagal memuat pilihan gedung dan ruang: {locationsError}. Lokasi baru tetap bisa diketik.
                 </p>
+              )}
+              {!locationsLoading && !locationsError && buildingOptions.length === 0 && (
+                <p className="text-[10px] text-slate-500">Belum ada gedung dan ruang tersimpan di database.</p>
               )}
 
               {/* Row 4: Jumlah + Sumber Dana */}
