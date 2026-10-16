@@ -118,9 +118,11 @@ export default function InventarisPublikPage() {
     ? filtered.filter(a => a.building === selectedBuilding && a.room === selectedRoom)
     : [];
 
+  const firstAssetInRoom = kirRoomAssets[0];
+  const specsAreaMatch = firstAssetInRoom?.specs?.match(/Luas:\s*([^;]+)/i);
   const kirArea = (selectedRoom !== 'ALL' && ROOM_AREA[selectedRoom])
     ? ROOM_AREA[selectedRoom]
-    : ((selectedRoom !== 'ALL' && selectedRoom.includes('Ruang')) ? '80 m²' : '—');
+    : (specsAreaMatch ? specsAreaMatch[1].trim() : ((selectedRoom !== 'ALL' && selectedRoom.includes('Ruang')) ? '80 m²' : '—'));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -345,8 +347,11 @@ export default function InventarisPublikPage() {
 
                       {/* Item list */}
                       <ul className="divide-y divide-slate-50 max-h-64 overflow-y-auto">
-                        {roomAssets.map(asset => (
+                        {roomAssets.map((asset, idx) => (
                           <li key={asset.id} className="px-4 py-2.5 flex items-start gap-3 hover:bg-slate-50 transition-colors">
+                            <span className="w-5 h-5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 border border-slate-200">
+                              {idx + 1}
+                            </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold text-slate-900 truncate">{asset.name}</p>
                               <p className="text-[10px] text-slate-500 font-mono">{asset.code}</p>

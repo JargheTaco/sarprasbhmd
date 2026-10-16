@@ -835,6 +835,7 @@ export default function InventarisPage() {
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                                  <th className="px-3 py-2 text-center w-12">No</th>
                                   <th className="px-4 py-2 text-left">No. Inventaris</th>
                                   <th className="px-4 py-2 text-left">Nama Barang</th>
                                   <th className="px-4 py-2 text-center">Kategori</th>
@@ -851,6 +852,7 @@ export default function InventarisPage() {
                               <tbody className="divide-y divide-slate-50">
                                 {roomAssets.map((asset, idx) => (
                                   <tr key={asset.id} className={`hover:bg-blue-50/40 transition-colors ${idx % 2 === 0 ? '' : 'bg-slate-50/40'}`}>
+                                    <td className="px-3 py-2.5 text-center font-bold text-slate-500 text-[11px] whitespace-nowrap">{idx + 1}</td>
                                     <td className="px-4 py-2.5 font-mono text-[10px] text-slate-600 whitespace-nowrap">{asset.code}</td>
                                     <td className="px-4 py-2.5 font-semibold text-slate-900">{asset.name}</td>
                                     <td className="px-4 py-2.5 text-center">
