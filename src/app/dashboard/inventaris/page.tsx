@@ -55,15 +55,22 @@ interface AssetLocation {
   room: string;
 }
 
+interface LocationOption {
+  value: string;
+  label: string;
+  building?: string;
+}
+
 interface LocationComboboxProps {
   id: string;
   label: string;
   value: string;
-  options: string[];
+  options: LocationOption[];
   placeholder: string;
   loading: boolean;
   disabled?: boolean;
   onChange: (value: string) => void;
+  onSelect?: (option: LocationOption) => void;
 }
 
 function LocationCombobox({
@@ -75,39 +82,55 @@ function LocationCombobox({
   loading,
   disabled = false,
   onChange,
+  onSelect,
 }: LocationComboboxProps) {
   const [open, setOpen] = useState(false);
   const filteredOptions = options.filter(option =>
-    option.toLocaleLowerCase('id-ID').includes(value.trim().toLocaleLowerCase('id-ID'))
+    `${option.label} ${option.value}`
+      .toLocaleLowerCase('id-ID')
+      .includes(value.trim().toLocaleLowerCase('id-ID'))
   );
 
   return (
     <div className="relative space-y-1">
       <label htmlFor={id} className="font-bold text-slate-700">{label}</label>
-      <input
-        id={id}
-        type="text"
-        required
-        autoComplete="off"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={open && filteredOptions.length > 0}
-        aria-controls={`${id}-options`}
-        placeholder={placeholder}
-        value={value}
-        disabled={disabled}
-        onFocus={() => setOpen(true)}
-        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-        onChange={event => {
-          onChange(event.target.value);
-          setOpen(true);
-        }}
-        onKeyDown={event => {
-          if (event.key === 'Escape') setOpen(false);
-          if (event.key === 'ArrowDown' && filteredOptions.length > 0) setOpen(true);
-        }}
-        className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-      />
+      <div className="relative">
+        <input
+          id={id}
+          type="text"
+          required
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open && filteredOptions.length > 0}
+          aria-controls={`${id}-options`}
+          placeholder={placeholder}
+          value={value}
+          disabled={disabled}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          onChange={event => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onKeyDown={event => {
+            if (event.key === 'Escape') setOpen(false);
+            if (event.key === 'ArrowDown' && filteredOptions.length > 0) setOpen(true);
+          }}
+          className="w-full px-3 py-2 pr-9 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+        />
+        <button
+          type="button"
+          aria-label={`Tampilkan pilihan ${label.toLowerCase()}`}
+          aria-expanded={open && filteredOptions.length > 0}
+          disabled={disabled || options.length === 0}
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => setOpen(current => !current)}
+          className="absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </div>
       {open && filteredOptions.length > 0 && (
         <div
           id={`${id}-options`}
@@ -116,18 +139,19 @@ function LocationCombobox({
         >
           {filteredOptions.map(option => (
             <button
-              key={option}
+              key={`${option.value}:${option.label}`}
               type="button"
               role="option"
-              aria-selected={option === value}
+              aria-selected={option.value === value}
               onMouseDown={event => event.preventDefault()}
               onClick={() => {
-                onChange(option);
+                if (onSelect) onSelect(option);
+                else onChange(option.value);
                 setOpen(false);
               }}
               className="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700"
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -278,16 +302,18 @@ export default function InventarisPage() {
 
   const buildings = Object.keys(grouped).sort();
   const buildingOptions = useMemo(
-    () => [...new Set(assetLocations.map(({ building }) => building))].sort(),
+    () => [...new Set(assetLocations.map(({ building }) => building))]
+      .sort()
+      .map(building => ({ value: building, label: building })),
     [assetLocations]
   );
   const roomOptions = useMemo(
-    () => [...new Set(
-      assetLocations
-        .filter(({ building }) => building === formData.building)
-        .map(({ room }) => room)
-    )].sort(),
-    [assetLocations, formData.building]
+    () => assetLocations.map(({ building, room }) => ({
+      value: room,
+      label: `${room} — ${building}`,
+      building,
+    })),
+    [assetLocations]
   );
 
   useEffect(() => {
@@ -984,6 +1010,13 @@ export default function InventarisPage() {
                   placeholder="Ketik atau pilih ruang / kelas"
                   loading={locationsLoading}
                   onChange={room => setFormData({ ...formData, room })}
+                  onSelect={option => {
+                    setFormData({
+                      ...formData,
+                      room: option.value,
+                      ...(option.building ? { building: option.building } : {}),
+                    });
+                  }}
                 />
               </div>
               {locationsLoading && (
