@@ -17,7 +17,12 @@ export const metadata: Metadata = {
   title: 'SIM-SARPRAS | Sistem Layanan Peminjaman, Inventarisasi & Perawatan Kampus',
   description: 'Sistem Informasi Manajemen Terpadu Sarana dan Prasarana Kampus. Pengajuan peminjaman mobil dinas, ruang kelas, dan aula tanpa login, persetujuan bertingkat Staff & Kepala Sarpras, serta pemeliharaan aset elektronik, mesin, dan kelistrikan.',
   icons: {
-    icon: '/logo-universitas.png',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/logo-universitas.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/logo-universitas.png',
   },
 };
 
