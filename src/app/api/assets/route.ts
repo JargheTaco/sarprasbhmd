@@ -81,7 +81,18 @@ export async function GET(req: NextRequest) {
       }
 
       if (search) {
-        query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,building.ilike.%${search}%,room.ilike.%${search}%,location.ilike.%${search}%,specs.ilike.%${search}%`);
+        const searchFilters = [
+          `name.ilike.%${search}%`,
+          `code.ilike.%${search}%`,
+          `building.ilike.%${search}%`,
+          `room.ilike.%${search}%`,
+          `location.ilike.%${search}%`,
+          `specs.ilike.%${search}%`,
+        ];
+        if (/^\d{4}$/.test(search.trim())) {
+          searchFilters.push(`purchase_year.eq.${search.trim()}`);
+        }
+        query = query.or(searchFilters.join(','));
       }
 
       return query;
