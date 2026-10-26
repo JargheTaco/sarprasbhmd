@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const room = searchParams.get('room');
     const search = searchParams.get('q');
     const loanableOnly = searchParams.get('loanable') === 'true';
+    const year = searchParams.get('year');
 
     if (searchParams.get('locations') === 'true') {
       const { data, error } = await supabaseAdmin
@@ -80,6 +81,13 @@ export async function GET(req: NextRequest) {
         query = query.eq('room', room);
       }
 
+      if (year && year !== 'ALL') {
+        const parsedYear = parseInt(year, 10);
+        if (!isNaN(parsedYear)) {
+          query = query.eq('purchase_year', parsedYear);
+        }
+      }
+
       if (search) {
         const searchFilters = [
           `name.ilike.%${search}%`,
@@ -105,7 +113,11 @@ export async function GET(req: NextRequest) {
       console.warn('Kolom assets.asset_type belum tersedia, memakai filter kategori/kata kunci.');
       const fallback = await buildQuery(false).order('name', { ascending: true });
       if (fallback.error) throw fallback.error;
-      const assets = (fallback.data || []).filter((asset) => resolveAssetType(asset) === effectiveAssetType);
+      const assets = (fallback.data || []).filter((asset) => {
+        const matchesType = resolveAssetType(asset) === effectiveAssetType;
+        const matchesYear = !year || year === 'ALL' || String(asset.purchase_year) === String(year);
+        return matchesType && matchesYear;
+      });
       return NextResponse.json({ success: true, assets, assetTypeFallback: true });
     }
 

@@ -223,6 +223,8 @@ export default function InventarisPage() {
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedBuilding, setSelectedBuilding] = useState('ALL');
   const [selectedAssetType, setSelectedAssetType] = useState('ALL');
+  const [selectedYear, setSelectedYear] = useState('ALL');
+  const [allYears, setAllYears] = useState<number[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
   const [kirSelection, setKirSelection] = useState<KirSelection | null>(null);
@@ -259,6 +261,7 @@ export default function InventarisPage() {
       if (selectedAssetType !== 'ALL') url += `asset_type=${selectedAssetType}&`;
       if (selectedStatus !== 'ALL') url += `status=${selectedStatus}&`;
       if (selectedBuilding !== 'ALL') url += `building=${encodeURIComponent(selectedBuilding)}&`;
+      if (selectedYear !== 'ALL') url += `year=${encodeURIComponent(selectedYear)}&`;
       if (search.trim()) url += `q=${encodeURIComponent(search.trim())}&`;
 
       const res = await fetch(url);
@@ -274,7 +277,7 @@ export default function InventarisPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAssets();
-  }, [selectedCategory, selectedAssetType, selectedStatus, selectedBuilding, search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedAssetType, selectedStatus, selectedBuilding, selectedYear, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -287,10 +290,43 @@ export default function InventarisPage() {
 
   const canEdit = currentUser?.role === 'ADMIN' || currentUser?.role === 'STAFF_SARPRAS';
 
+  useEffect(() => {
+    if (assets.length > 0 && selectedYear === 'ALL' && !search.trim()) {
+      const set = new Set<number>();
+      for (const a of assets) {
+        if (a.purchase_year && a.purchase_year > 1900) {
+          set.add(a.purchase_year);
+        }
+      }
+      if (set.size > 0) {
+        setAllYears(Array.from(set).sort((a, b) => b - a));
+      }
+    }
+  }, [assets, selectedYear, search]);
+
+  const yearOptions = useMemo(() => {
+    if (allYears.length > 0) return allYears;
+    const years = [];
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 2010; y--) {
+      years.push(y);
+    }
+    return years;
+  }, [allYears]);
+
   // Group assets by building → room
   const grouped = useMemo(() => {
+    const trimmedSearch = search.trim();
+    const isYearSearch = /^\d{4}$/.test(trimmedSearch);
+    const searchYear = isYearSearch ? parseInt(trimmedSearch, 10) : null;
     const map: Record<string, Record<string, Asset[]>> = {};
     for (const asset of assets) {
+      if (selectedYear !== 'ALL' && String(asset.purchase_year) !== String(selectedYear)) {
+        continue;
+      }
+      if (isYearSearch && searchYear && asset.purchase_year !== searchYear) {
+        continue;
+      }
       const bld = asset.building || 'Belum Ditentukan';
       const rm = asset.room || asset.location || 'Belum Ditentukan';
       if (!map[bld]) map[bld] = {};
@@ -298,7 +334,17 @@ export default function InventarisPage() {
       map[bld][rm].push(asset);
     }
     return map;
-  }, [assets]);
+  }, [assets, selectedYear, search]);
+
+  const displayedAssets = useMemo(() => {
+    const list: Asset[] = [];
+    for (const bld of Object.keys(grouped)) {
+      for (const rm of Object.keys(grouped[bld])) {
+        list.push(...grouped[bld][rm]);
+      }
+    }
+    return list;
+  }, [grouped]);
 
   const buildings = Object.keys(grouped).sort();
   const buildingOptions = useMemo(
@@ -503,8 +549,8 @@ export default function InventarisPage() {
     }
   };
 
-  const totalAssets = assets.length;
-  const totalNilai = assets.reduce((sum, a) => sum + (a.purchase_price || 0), 0);
+  const totalAssets = displayedAssets.length;
+  const totalNilai = displayedAssets.reduce((sum, a) => sum + (a.purchase_price || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -559,8 +605,8 @@ export default function InventarisPage() {
         {[
           { label: 'Total Aset', value: totalAssets.toLocaleString('id-ID'), color: 'blue' },
           { label: 'Nilai Perolehan', value: formatRupiah(totalNilai), color: 'emerald' },
-          { label: 'Kondisi Baik', value: assets.filter(a => a.condition === 'BAIK').length.toLocaleString('id-ID'), color: 'green' },
-          { label: 'Perlu Perhatian', value: assets.filter(a => a.condition !== 'BAIK').length.toLocaleString('id-ID'), color: 'rose' },
+          { label: 'Kondisi Baik', value: displayedAssets.filter(a => a.condition === 'BAIK').length.toLocaleString('id-ID'), color: 'green' },
+          { label: 'Perlu Perhatian', value: displayedAssets.filter(a => a.condition !== 'BAIK').length.toLocaleString('id-ID'), color: 'rose' },
         ].map(s => (
           <div key={s.label} className={`bg-${s.color}-50 border border-${s.color}-100 rounded-2xl px-4 py-3`}>
             <p className={`text-[10px] font-bold text-${s.color}-600 uppercase tracking-wider`}>{s.label}</p>
@@ -617,7 +663,7 @@ export default function InventarisPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Cari kode, nama, gedung, ruang..."
+            placeholder="Cari kode, nama, tahun (cth: 2019), gedung, ruang..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white"
@@ -659,6 +705,33 @@ export default function InventarisPage() {
             <option key={b} value={b}>{b}</option>
           ))}
         </select>
+        <select
+          value={selectedYear}
+          onChange={e => setSelectedYear(e.target.value)}
+          className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="ALL">Semua Tahun</option>
+          {yearOptions.map(y => (
+            <option key={y} value={String(y)}>Tahun {y}</option>
+          ))}
+        </select>
+        {(selectedCategory !== 'ALL' || selectedAssetType !== 'ALL' || selectedStatus !== 'ALL' || selectedBuilding !== 'ALL' || selectedYear !== 'ALL' || search.trim()) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setSelectedCategory('ALL');
+              setSelectedAssetType('ALL');
+              setSelectedStatus('ALL');
+              setSelectedBuilding('ALL');
+              setSelectedYear('ALL');
+            }}
+            className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+            title="Reset Semua Filter"
+          >
+            Reset Filter
+          </button>
+        )}
       </div>
 
       {kirSelection && (
