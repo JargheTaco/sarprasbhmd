@@ -59,6 +59,7 @@ export default function InventarisPublikPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedYear, setSelectedYear] = useState('ALL');
   const [selectedBuilding, setSelectedBuilding] = useState('ALL');
   const [selectedRoom, setSelectedRoom] = useState('ALL');
   const [kirMode, setKirMode] = useState(false);
@@ -76,6 +77,12 @@ export default function InventarisPublikPage() {
     [assets]
   );
 
+  const years = useMemo(
+    () => Array.from(new Set(assets.map(a => a.purchase_year).filter(year => Number.isInteger(year) && year > 0)))
+      .sort((a, b) => b - a),
+    [assets]
+  );
+
   const rooms = useMemo(() => {
     if (selectedBuilding === 'ALL') return [];
     return Array.from(
@@ -87,18 +94,20 @@ export default function InventarisPublikPage() {
     return assets.filter(a => {
       if (selectedBuilding !== 'ALL' && a.building !== selectedBuilding) return false;
       if (selectedRoom !== 'ALL' && a.room !== selectedRoom) return false;
+      if (selectedYear !== 'ALL' && String(a.purchase_year) !== selectedYear) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
         return (
           a.name?.toLowerCase().includes(q) ||
           a.code?.toLowerCase().includes(q) ||
           a.room?.toLowerCase().includes(q) ||
-          a.specs?.toLowerCase().includes(q)
+          a.specs?.toLowerCase().includes(q) ||
+          String(a.purchase_year || '').includes(q)
         );
       }
       return true;
     });
-  }, [assets, selectedBuilding, selectedRoom, search]);
+  }, [assets, selectedBuilding, selectedRoom, selectedYear, search]);
 
   // Group filtered assets by building → room for the card view
   const grouped = useMemo(() => {
@@ -169,6 +178,16 @@ export default function InventarisPublikPage() {
           </div>
 
           <select
+            value={selectedYear}
+            onChange={e => setSelectedYear(e.target.value)}
+            aria-label="Filter tahun perolehan"
+            className="px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="ALL">— Semua Tahun —</option>
+            {years.map(year => <option key={year} value={year}>{year}</option>)}
+          </select>
+
+          <select
             value={selectedBuilding}
             onChange={e => {
               setSelectedBuilding(e.target.value);
@@ -208,6 +227,7 @@ export default function InventarisPublikPage() {
 
         <p className="text-xs text-slate-500">
           Menampilkan <strong>{filtered.length.toLocaleString('id-ID')}</strong> item inventaris
+          {selectedYear !== 'ALL' ? ` tahun ${selectedYear}` : ''}
           {selectedBuilding !== 'ALL' ? ` di ${selectedBuilding}` : ' di seluruh kampus'}
           {selectedRoom !== 'ALL' ? ` — ${selectedRoom}` : ''}.
         </p>
