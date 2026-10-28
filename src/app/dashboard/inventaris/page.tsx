@@ -14,7 +14,7 @@ import {
   Upload,
 } from 'lucide-react';
 import Image from 'next/image';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Asset {
   id: string;
@@ -227,8 +227,12 @@ export default function InventarisPage() {
   const [allYears, setAllYears] = useState<number[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
+  const [collapsedBuildings, setCollapsedBuildings] = useState<Set<string>>(new Set());
   const [kirSelection, setKirSelection] = useState<KirSelection | null>(null);
   const [kirLoadingRoom, setKirLoadingRoom] = useState<string | null>(null);
+
+  const requestIdRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -253,7 +257,16 @@ export default function InventarisPage() {
   const [importRoom, setImportRoom] = useState('');
   const [importAssetType, setImportAssetType] = useState('INVENTARIS');
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (searchQuery?: string) => {
+    const currentRequestId = ++requestIdRef.current;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const q = (typeof searchQuery === 'string' ? searchQuery : search).trim();
+
     setLoading(true);
     try {
       let url = '/api/assets?';
@@ -262,22 +275,36 @@ export default function InventarisPage() {
       if (selectedStatus !== 'ALL') url += `status=${selectedStatus}&`;
       if (selectedBuilding !== 'ALL') url += `building=${encodeURIComponent(selectedBuilding)}&`;
       if (selectedYear !== 'ALL') url += `year=${encodeURIComponent(selectedYear)}&`;
-      if (search.trim()) url += `q=${encodeURIComponent(search.trim())}&`;
+      if (q) url += `q=${encodeURIComponent(q)}&`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
       const data = await res.json();
-      if (data?.assets) setAssets(data.assets);
-    } catch (err) {
+      if (currentRequestId === requestIdRef.current && data?.assets) {
+        setAssets(data.assets);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.error(err);
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
+  // Debounce search fetch ke server (300ms) untuk menghindari race condition
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchAssets();
-  }, [selectedCategory, selectedAssetType, selectedStatus, selectedBuilding, selectedYear, search]); // eslint-disable-line react-hooks/exhaustive-deps
+    setCollapsedBuildings(new Set());
+    const timer = setTimeout(() => {
+      fetchAssets(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch langsung ketika filter dropdown berubah
+  useEffect(() => {
+    fetchAssets(search);
+  }, [selectedCategory, selectedAssetType, selectedStatus, selectedBuilding, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -317,16 +344,28 @@ export default function InventarisPage() {
   // Group assets by building → room
   const grouped = useMemo(() => {
     const trimmedSearch = search.trim();
+    const searchLower = trimmedSearch.toLowerCase();
     const isYearSearch = /^\d{4}$/.test(trimmedSearch);
     const searchYear = isYearSearch ? parseInt(trimmedSearch, 10) : null;
     const map: Record<string, Record<string, Asset[]>> = {};
+
     for (const asset of assets) {
       if (selectedYear !== 'ALL' && String(asset.purchase_year) !== String(selectedYear)) {
         continue;
       }
-      if (isYearSearch && searchYear && asset.purchase_year !== searchYear) {
-        continue;
+      if (isYearSearch && searchYear) {
+        if (asset.purchase_year !== searchYear) continue;
+      } else if (searchLower) {
+        const matches =
+          asset.name?.toLowerCase().includes(searchLower) ||
+          asset.code?.toLowerCase().includes(searchLower) ||
+          asset.room?.toLowerCase().includes(searchLower) ||
+          asset.building?.toLowerCase().includes(searchLower) ||
+          asset.location?.toLowerCase().includes(searchLower) ||
+          asset.specs?.toLowerCase().includes(searchLower);
+        if (!matches) continue;
       }
+
       const bld = asset.building || 'Belum Ditentukan';
       const rm = asset.room || asset.location || 'Belum Ditentukan';
       if (!map[bld]) map[bld] = {};
@@ -395,11 +434,19 @@ export default function InventarisPage() {
   }, [modalOpen]);
 
   const toggleBuilding = (b: string) => {
-    setExpandedBuildings(prev => {
-      const next = new Set(prev);
-      if (next.has(b)) next.delete(b); else next.add(b);
-      return next;
-    });
+    if (search.trim()) {
+      setCollapsedBuildings(prev => {
+        const next = new Set(prev);
+        if (next.has(b)) next.delete(b); else next.add(b);
+        return next;
+      });
+    } else {
+      setExpandedBuildings(prev => {
+        const next = new Set(prev);
+        if (next.has(b)) next.delete(b); else next.add(b);
+        return next;
+      });
+    }
   };
 
   const handleOpenCreate = () => {
@@ -725,6 +772,7 @@ export default function InventarisPage() {
               setSelectedStatus('ALL');
               setSelectedBuilding('ALL');
               setSelectedYear('ALL');
+              setCollapsedBuildings(new Set());
             }}
             className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
             title="Reset Semua Filter"
@@ -844,7 +892,8 @@ export default function InventarisPage() {
       ) : (
         <div className="space-y-4">
           {buildings.map(building => {
-            const isOpen = expandedBuildings.has(building);
+            const isSearching = Boolean(search.trim());
+            const isOpen = isSearching ? !collapsedBuildings.has(building) : expandedBuildings.has(building);
             const rooms = Object.keys(grouped[building]).sort();
             const buildingTotal = rooms.reduce((s, r) => s + grouped[building][r].length, 0);
             return (
